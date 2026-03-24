@@ -10,6 +10,7 @@ import '../../features/shop/presentation/bloc/shop_bloc.dart';
 import '../../features/settings/data/repositories/printer_repository_impl.dart';
 import '../../features/settings/domain/repositories/printer_repository.dart';
 import '../../features/settings/presentation/bloc/printer_bloc.dart';
+import '../../features/upi/presentation/bloc/upi_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -26,17 +27,12 @@ Future<void> init() async {
   );
 
   sl.registerFactory(
-    () => ShopBloc(
-      getShopUseCase: sl(),
-      updateShopUseCase: sl(),
-    ),
+    () => ShopBloc(getShopUseCase: sl(), updateShopUseCase: sl()),
   );
 
-  sl.registerFactory(
-    () => PrinterBloc(
-      repository: sl(),
-    ),
-  );
+  sl.registerFactory(() => PrinterBloc(repository: sl()));
+
+  sl.registerFactory(() => UpiBloc());
 
   // Use cases
   sl.registerLazySingleton(() => GetProductsUseCase(sl()));
@@ -46,9 +42,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetProductByBarcodeUseCase(sl()));
 
   // Repository
-  sl.registerLazySingleton<ProductRepository>(
-    () => ProductRepositoryImpl(),
-  );
+  sl.registerLazySingleton<ProductRepository>(() => ProductRepositoryImpl());
 
   // Features - Shop
   // Use cases
@@ -56,12 +50,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => UpdateShopUseCase(sl()));
 
   // Repository
-  sl.registerLazySingleton<ShopRepository>(
-    () => ShopRepositoryImpl(),
-  );
+  sl.registerLazySingleton<ShopRepository>(() => ShopRepositoryImpl());
 
   // Features - Settings / Printer
-  sl.registerLazySingleton<PrinterRepository>(
-    () => PrinterRepositoryImpl(),
-  );
+  sl.registerLazySingleton<PrinterRepository>(() => PrinterRepositoryImpl());
 }

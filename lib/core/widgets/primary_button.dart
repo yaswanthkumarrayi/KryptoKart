@@ -26,60 +26,68 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = ElevatedButton.styleFrom(
-      backgroundColor: Theme.of(context).primaryColor,
-      foregroundColor: Colors.white,
-      padding: padding,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      elevation: elevation,
-      shadowColor: Theme.of(context).primaryColor.withValues(alpha: 0.4),
-      minimumSize: isFullWidth ? const Size.fromHeight(50) : null,
+    final bool isEnabled = onPressed != null && !isLoading;
+    final Color primary = Theme.of(context).colorScheme.primary;
+    final BorderRadius radius = BorderRadius.circular(borderRadius);
+
+    final buttonChild = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isLoading)
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
+            ),
+          )
+        else if (icon != null)
+          Icon(icon, color: Colors.white),
+        if (icon != null || isLoading) const SizedBox(width: 8),
+        Text(
+          label,
+          style: (textStyle ?? const TextStyle(fontWeight: FontWeight.w700))
+              .copyWith(color: Colors.white),
+        ),
+      ],
     );
 
-    if (icon != null) {
-      return Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: ElevatedButton.icon(
-          onPressed: isLoading ? null : onPressed,
-          icon: isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : Icon(icon),
-          label: Text(
-            label,
-            style: textStyle,
-          ),
-          style: style,
-        ),
-      );
-    }
-
     return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: style,
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              )
-            : Text(
-                label,
-                style: textStyle,
+      padding: const EdgeInsets.all(24),
+      child: SizedBox(
+        width: isFullWidth ? double.infinity : null,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            gradient: LinearGradient(
+              colors: isEnabled
+                  ? [primary, const Color(0xFF7C3AED)]
+                  : [Colors.grey.shade400, Colors.grey.shade500],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: primary.withValues(alpha: isEnabled ? 0.35 : 0.1),
+                blurRadius: elevation * 2,
+                offset: const Offset(0, 8),
               ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: isEnabled ? onPressed : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              disabledBackgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(borderRadius: radius),
+              minimumSize: isFullWidth ? const Size.fromHeight(52) : null,
+              padding: padding,
+            ),
+            child: buttonChild,
+          ),
+        ),
       ),
     );
   }

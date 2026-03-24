@@ -9,6 +9,7 @@ import 'features/product/presentation/bloc/product_bloc.dart';
 import 'features/shop/presentation/bloc/shop_bloc.dart';
 import 'features/settings/presentation/bloc/printer_bloc.dart';
 import 'features/settings/presentation/bloc/printer_event.dart';
+import 'features/upi/presentation/bloc/upi_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,18 +26,24 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<ProductBloc>(
-            create: (context) => di.sl<ProductBloc>()..add(LoadProducts())),
+          create: (context) => di.sl<ProductBloc>()..add(LoadProducts()),
+        ),
         BlocProvider<ShopBloc>(
-            create: (context) => di.sl<ShopBloc>()..add(LoadShopEvent())),
+          create: (context) => di.sl<ShopBloc>()..add(LoadShopEvent()),
+        ),
         BlocProvider<BillingBloc>(
-            create: (context) =>
-                BillingBloc(getProductByBarcodeUseCase: di.sl())),
+          create: (context) => BillingBloc(getProductByBarcodeUseCase: di.sl()),
+        ),
         BlocProvider<PrinterBloc>(
-            create: (context) => di.sl<PrinterBloc>()..add(InitPrinterEvent())),
+          create: (context) => di.sl<PrinterBloc>()..add(InitPrinterEvent()),
+        ),
+        BlocProvider<UpiBloc>(create: (context) => di.sl<UpiBloc>()),
       ],
       child: MaterialApp.router(
-        title: 'Billing App',
-        theme: AppTheme.lightTheme,
+        title: 'KryptoKart',
+        theme: AppTheme.darkTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.dark,
         routerConfig: router,
         debugShowCheckedModeBanner: false,
       ),

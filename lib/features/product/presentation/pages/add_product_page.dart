@@ -9,6 +9,7 @@ import '../bloc/product_bloc.dart';
 import '../../domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
+import '../../../billing/presentation/pages/scanner_page.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -24,7 +25,9 @@ class _AddProductPageState extends State<AddProductPage> {
   double _price = 0.0;
 
   void _scanBarcode() async {
-    final result = await context.push<String>('/scanner');
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(builder: (_) => const ScannerPage()),
+    );
     if (result != null && result.isNotEmpty) {
       setState(() {
         _barcode = result;
@@ -37,8 +40,9 @@ class _AddProductPageState extends State<AddProductPage> {
       _formKey.currentState!.save();
 
       final productState = context.read<ProductBloc>().state;
-      final existingProduct =
-          productState.products.where((p) => p.barcode == _barcode).firstOrNull;
+      final existingProduct = productState.products
+          .where((p) => p.barcode == _barcode)
+          .firstOrNull;
 
       if (existingProduct != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -65,94 +69,107 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.chevron_left,
-                size: 28, color: Theme.of(context).primaryColor),
-            onPressed: () => context.pop(),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: Theme.of(context).primaryColor,
           ),
-          title: const Text('Add Product',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          centerTitle: true,
+          onPressed: () => context.pop(),
         ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const InputLabel(text: 'Barcode'),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          key: ValueKey(_barcode),
-                          initialValue: _barcode,
-                          decoration: const InputDecoration(
-                            hintText: 'Scan or enter barcode',
-                          ),
-                          validator:
-                              AppValidators.required('Please enter a barcode'),
-                          onSaved: (value) => _barcode = value!,
+        title: const Text(
+          'Add Product',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const InputLabel(text: 'Barcode'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        key: ValueKey(_barcode),
+                        initialValue: _barcode,
+                        decoration: const InputDecoration(
+                          hintText: 'Scan or enter barcode',
                         ),
+                        validator: AppValidators.required(
+                          'Please enter a barcode',
+                        ),
+                        onSaved: (value) => _barcode = value!,
                       ),
-                      const SizedBox(width: 12),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.qr_code_scanner,
-                              color: AppTheme.primaryColor),
-                          onPressed: _scanBarcode,
-                          padding: const EdgeInsets.all(14),
-                        ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Text('Tap the icon to open camera scanner',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF4C669A))),
-                  const SizedBox(height: 24),
-                  const InputLabel(text: 'Product Name'),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. Basmati Rice',
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.qr_code_scanner,
+                          color: AppTheme.primaryColor,
+                        ),
+                        onPressed: _scanBarcode,
+                        padding: const EdgeInsets.all(14),
+                      ),
                     ),
-                    textCapitalization: TextCapitalization.words,
-                    validator: AppValidators.required('Please enter a name'),
-                    onSaved: (value) => _name = value!,
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Tap the icon to open camera scanner',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF4C669A)),
+                ),
+                const SizedBox(height: 24),
+                const InputLabel(text: 'Product Name'),
+                TextFormField(
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. Basmati Rice',
                   ),
-                  const SizedBox(height: 24),
-                  const InputLabel(text: 'Price'),
-                  TextFormField(
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      hintText: '0.00',
-                      prefixText: '₹ ',
-                      prefixStyle: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black),
+                  textCapitalization: TextCapitalization.words,
+                  validator: AppValidators.required('Please enter a name'),
+                  onSaved: (value) => _name = value!,
+                ),
+                const SizedBox(height: 24),
+                const InputLabel(text: 'Price'),
+                TextFormField(
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: '0.00',
+                    prefixText: '₹ ',
+                    prefixStyle: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
                     ),
-                    validator: AppValidators.price,
-                    onSaved: (value) => _price = double.parse(value!),
                   ),
-                ],
-              ),
+                  validator: AppValidators.price,
+                  onSaved: (value) => _price = double.parse(value!),
+                ),
+              ],
             ),
           ),
         ),
-        bottomNavigationBar: PrimaryButton(
-          onPressed: _submit,
-          icon: Icons.add_circle,
-          label: 'Add Product',
-        ));
+      ),
+      bottomNavigationBar: PrimaryButton(
+        onPressed: _submit,
+        icon: Icons.add_circle,
+        label: 'Add Product',
+      ),
+    );
   }
 }
