@@ -1,5 +1,5 @@
-import 'package:billing_fixed/core/widgets/input_label.dart';
-import 'package:billing_fixed/core/widgets/primary_button.dart';
+import 'package:kryptokart/core/widgets/input_label.dart';
+import 'package:kryptokart/core/widgets/primary_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';

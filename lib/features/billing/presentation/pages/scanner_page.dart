@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:vibration/vibration.dart';
 
 class ScannerPage extends StatefulWidget {
@@ -30,16 +30,19 @@ class _ScannerPageState extends State<ScannerPage> {
     for (final barcode in barcodes) {
       if (barcode.rawValue != null) {
         _isScanned = true;
-        // Vibrate
+        final raw = barcode.rawValue!;
+
+        // Vibrate on scan
         final hasVibrator = await Vibration.hasVibrator();
         if (hasVibrator == true) {
           Vibration.vibrate();
         }
 
-        if (mounted) {
-          context.pop(barcode.rawValue);
-        }
-        break; // Only take first one
+        if (!mounted) return;
+
+        // Pop with the raw QR data - let the caller handle navigation
+        context.pop(raw);
+        break;
       }
     }
   }
@@ -53,16 +56,14 @@ class _ScannerPageState extends State<ScannerPage> {
                 size: 28, color: Theme.of(context).primaryColor),
             onPressed: () => context.pop(),
           ),
-          title: const Text('Scan Barcode',
+          title: const Text('Scan QR Code',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
       body: Stack(
         children: [
           MobileScanner(
             controller: controller,
             onDetect: _onDetect,
-            // Removed overlay property
           ),
-          // Simple border overlay manually
           Container(
             decoration: BoxDecoration(
               border: Border.all(color: Colors.transparent, width: 0),
@@ -73,7 +74,6 @@ class _ScannerPageState extends State<ScannerPage> {
                 height: 250,
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.green, width: 2),
-                  // borderRadius: BorderRadius.circular(16),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(5.0),
@@ -82,17 +82,11 @@ class _ScannerPageState extends State<ScannerPage> {
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _corner(0),
-                          _corner(1),
-                        ],
+                        children: [_corner(0), _corner(1)],
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _corner(3),
-                          _corner(2),
-                        ],
+                        children: [_corner(3), _corner(2)],
                       ),
                     ],
                   ),
@@ -104,10 +98,20 @@ class _ScannerPageState extends State<ScannerPage> {
             bottom: 40,
             left: 0,
             right: 0,
-            child: Text(
-              'Align barcode within frame',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            child: Column(
+              children: [
+                Text(
+                  'Scan UPI QR or Ethereum address',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontSize: 15),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'UPI · ETH · Polygon',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+              ],
             ),
           ),
         ],

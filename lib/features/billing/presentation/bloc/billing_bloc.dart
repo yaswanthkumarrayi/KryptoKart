@@ -1,8 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/cart_item.dart';
-import 'package:billing_fixed/features/product/domain/entities/product.dart';
-import 'package:billing_fixed/features/product/domain/usecases/product_usecases.dart';
+import 'package:kryptokart/features/product/domain/entities/product.dart';
+import 'package:kryptokart/features/product/domain/usecases/product_usecases.dart';
 import '../../../../core/utils/printer_helper.dart';
 import '../../../../core/data/hive_database.dart';
 

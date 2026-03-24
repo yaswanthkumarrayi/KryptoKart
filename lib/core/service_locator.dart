@@ -10,12 +10,22 @@ import '../../features/shop/presentation/bloc/shop_bloc.dart';
 import '../../features/settings/data/repositories/printer_repository_impl.dart';
 import '../../features/settings/domain/repositories/printer_repository.dart';
 import '../../features/settings/presentation/bloc/printer_bloc.dart';
+// Payment feature
+import '../../features/payment/data/services/price_oracle_service.dart';
+import '../../features/payment/data/services/wallet_service.dart';
+import '../../features/payment/data/services/crypto_payment_service.dart';
+import '../../features/payment/data/services/upi_payment_service.dart';
+import '../../features/payment/domain/usecases/get_live_crypto_price.dart';
+import '../../features/payment/domain/usecases/process_crypto_payment.dart';
+import '../../features/payment/domain/usecases/process_upi_payment.dart';
+import '../../features/payment/presentation/bloc/payment_bloc.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
+  // ================================================================
   // Features - Product
-  // Bloc
+  // ================================================================
   sl.registerFactory(
     () => ProductBloc(
       getProductsUseCase: sl(),
@@ -50,18 +60,47 @@ Future<void> init() async {
     () => ProductRepositoryImpl(),
   );
 
+  // ================================================================
   // Features - Shop
-  // Use cases
+  // ================================================================
   sl.registerLazySingleton(() => GetShopUseCase(sl()));
   sl.registerLazySingleton(() => UpdateShopUseCase(sl()));
 
-  // Repository
   sl.registerLazySingleton<ShopRepository>(
     () => ShopRepositoryImpl(),
   );
 
+  // ================================================================
   // Features - Settings / Printer
+  // ================================================================
   sl.registerLazySingleton<PrinterRepository>(
     () => PrinterRepositoryImpl(),
+  );
+
+  // ================================================================
+  // Features - Payment
+  // ================================================================
+  // Services
+  sl.registerLazySingleton(() => PriceOracleService());
+  sl.registerLazySingleton(() => WalletService());
+  sl.registerLazySingleton(() => CryptoPaymentService(
+        priceOracleService: sl(),
+        walletService: sl(),
+      ));
+  sl.registerFactory(() => UpiPaymentService());
+
+  // Use cases
+  sl.registerLazySingleton(() => GetLiveCryptoPrice(sl()));
+  sl.registerLazySingleton(() => ProcessCryptoPayment(sl()));
+  sl.registerLazySingleton(() => ProcessUpiPayment(sl()));
+
+  // BLoC
+  sl.registerFactory(
+    () => PaymentBloc(
+      processCryptoPayment: sl(),
+      processUpiPayment: sl(),
+      getLiveCryptoPrice: sl(),
+      walletService: sl(),
+    ),
   );
 }

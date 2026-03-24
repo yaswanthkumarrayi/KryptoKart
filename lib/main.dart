@@ -9,6 +9,7 @@ import 'features/product/presentation/bloc/product_bloc.dart';
 import 'features/shop/presentation/bloc/shop_bloc.dart';
 import 'features/settings/presentation/bloc/printer_bloc.dart';
 import 'features/settings/presentation/bloc/printer_event.dart';
+import 'features/payment/presentation/bloc/payment_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,10 +33,13 @@ class MyApp extends StatelessWidget {
             create: (context) =>
                 BillingBloc(getProductByBarcodeUseCase: di.sl())),
         BlocProvider<PrinterBloc>(
-            create: (context) => di.sl<PrinterBloc>()..add(InitPrinterEvent())),
+            create: (context) =>
+                di.sl<PrinterBloc>()..add(InitPrinterEvent())),
+        BlocProvider<PaymentBloc>(
+            create: (context) => di.sl<PaymentBloc>()),
       ],
       child: MaterialApp.router(
-        title: 'Billing App',
+        title: 'KryptoKart',
         theme: AppTheme.lightTheme,
         routerConfig: router,
         debugShowCheckedModeBanner: false,

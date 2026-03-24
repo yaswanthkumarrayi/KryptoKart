@@ -8,10 +8,68 @@ import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/billing/presentation/pages/scanner_page.dart';
 import '../../features/billing/presentation/pages/checkout_page.dart';
 import '../../features/product/domain/entities/product.dart';
+import '../../features/payment/presentation/screens/home_screen.dart';
+import '../../features/payment/presentation/screens/payment_mode_picker_screen.dart';
+import '../../features/payment/presentation/screens/crypto_checkout_screen.dart';
+import '../../features/payment/presentation/screens/upi_checkout_screen.dart';
+import '../../features/payment/presentation/screens/receipt_screen.dart';
+import '../../features/payment/domain/entities/payment_result.dart';
 
 final router = GoRouter(
   initialLocation: '/',
   routes: [
+    // ----------------------------------------------------------------
+    // KryptoKart payment routes
+    // ----------------------------------------------------------------
+    GoRoute(
+      path: '/home',
+      name: 'home',
+      builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: '/payment/picker',
+      name: 'payment-picker',
+      builder: (context, state) => const PaymentModePickerScreen(),
+    ),
+    GoRoute(
+      path: '/payment/crypto',
+      name: 'payment-crypto',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        final ethAddress = extra['ethAddress'] as String? ?? '';
+        final amountInr =
+            (extra['amountInr'] as num?)?.toDouble() ?? 0.0;
+        return CryptoCheckoutScreen(
+          ethAddress: ethAddress,
+          amountInr: amountInr,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/payment/upi',
+      name: 'payment-upi',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        final upiId = extra['upiId'] as String? ?? '';
+        final amountInr =
+            (extra['amountInr'] as num?)?.toDouble() ?? 0.0;
+        return UpiCheckoutScreen(
+          upiId: upiId,
+          amountInr: amountInr,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/payment/receipt',
+      name: 'payment-receipt',
+      builder: (context, state) {
+        final result = state.extra as PaymentResult;
+        return ReceiptScreen(result: result);
+      },
+    ),
+    // ----------------------------------------------------------------
+    // Existing billing routes (preserved)
+    // ----------------------------------------------------------------
     GoRoute(
       path: '/',
       builder: (context, state) => const HomePage(),
@@ -43,7 +101,6 @@ final router = GoRouter(
           builder: (context, state) {
             final product = state.extra as Product?;
             if (product == null) {
-              // If we land here without extra (e.g. deep link), go back to products for now.
               return const ProductListPage();
             }
             return EditProductPage(product: product);
