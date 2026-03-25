@@ -1,598 +1,409 @@
-# Billing Fixed - POS Billing App
+# KryptoKart - Universal Billing & Payment App
 
-A Flutter-based Point of Sale (POS) billing application designed for small retail shops. Features barcode scanning, cart management, UPI QR code payment, and Bluetooth thermal receipt printing — all powered by local Hive storage with no internet required.
-
----
-
-## Table of Contents
-
-- [Features](#features)
-- [Screenshots & Screens](#screenshots--screens)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Tech Stack](#tech-stack)
-- [Data Flow](#data-flow)
-- [Screens in Detail](#screens-in-detail)
-- [Data Models](#data-models)
-- [State Management (BLoC)](#state-management-bloc)
-- [Routing](#routing)
-- [Dependency Injection](#dependency-injection)
-- [Database (Hive)](#database-hive)
-- [Thermal Printing](#thermal-printing)
-- [Getting Started](#getting-started)
-- [Build & Run](#build--run)
-
----
+A Flutter-based point-of-sale and payment application that combines barcode-driven shopping with UPI and cryptocurrency payments. Scan any QR code -- product barcode, UPI payment, or ETH wallet -- and the app handles it internally without launching external apps.
 
 ## Features
 
-- **Barcode Scanning POS** — Scan product barcodes with the device camera to instantly add items to the cart
-- **Cart Management** — Increase/decrease quantity, remove items, view running totals
-- **Product Catalog (CRUD)** — Add, edit, delete, and search products with barcode support
-- **Shop Profile** — Configure shop name, address, phone, UPI ID, and receipt footer text
-- **UPI QR Code Payment** — Auto-generates a UPI QR code on the checkout screen for the order total
-- **Bluetooth Thermal Printing** — Print formatted receipts on any ESC/POS compatible Bluetooth thermal printer
-- **Offline-First** — All data stored locally via Hive; no internet or backend server needed
-- **Clean Architecture** — Feature-first modular design with domain/data/presentation layers
-
----
-
-## Screenshots & Screens
-
-The app has **8 screens** organized across 4 feature modules:
-
-| Screen | Route | Description |
-|--------|-------|-------------|
-| **Home (POS Scanner)** | `/` | Main billing screen with live camera scanner and cart overlay |
-| **Barcode Scanner** | `/scanner` | Standalone single-scan screen (used for product add/search) |
-| **Checkout** | `/checkout` | Order summary table, UPI QR code, and print receipt button |
-| **Product List** | `/products` | Searchable product catalog with edit/delete actions |
-| **Add Product** | `/products/add` | Form to add a new product (barcode, name, price) |
-| **Edit Product** | `/products/edit/:id` | Edit an existing product's name and price |
-| **Shop Details** | `/shop` | Form to view and update shop profile information |
-| **Settings** | `/settings` | Hub for shop profile, product catalog, and printer management |
-
----
+- **Universal QR Scanner** -- Single scanner detects UPI QR, crypto wallets, and product barcodes
+- **Shop & Go Mode** -- Live camera scanning adds products to cart in real time
+- **UPI Payments** -- In-app payment via Razorpay SDK (no external app redirect)
+- **Crypto Payments** -- ETH/MATIC via WalletConnect with live CoinGecko price oracle
+- **Product Management** -- Full CRUD with barcode association, Hive-backed
+- **Bluetooth Receipt Printing** -- ESC/POS thermal printer support
+- **Transaction History** -- Persisted in Hive with receipt view and print
+- **Dark Theme** -- Consistent Material 3 dark UI throughout
 
 ## Architecture
 
-The project follows **Clean Architecture** with a **feature-first** folder organization:
-
-```
-Feature/
-├── domain/          (Business logic - pure Dart, no Flutter dependencies)
-│   ├── entities/    (Core business objects)
-│   ├── repositories/(Abstract repository contracts)
-│   └── usecases/   (Application-specific business rules)
-├── data/            (Data layer - implements domain contracts)
-│   ├── models/      (Hive-annotated data models extending entities)
-│   └── repositories/(Concrete repository implementations)
-└── presentation/    (UI layer)
-    ├── bloc/        (BLoC state management)
-    └── pages/       (Flutter widgets / screens)
-```
-
-**Key principles:**
-- Domain layer has zero dependencies on data or presentation
-- Data layer implements domain repository interfaces using Hive
-- Presentation layer uses BLoC pattern to manage UI state
-- Dependency inversion via GetIt service locator
-- Functional error handling with `fpdart` (`Either<Failure, Result>`)
-
----
-
-## Project Structure
-
 ```
 lib/
-├── main.dart                              # App entry point, BLoC providers
+├── main.dart                          # App entry, Bloc providers, router
 ├── config/
 │   └── routes/
-│       └── app_routes.dart                # GoRouter route definitions
+│       └── app_routes.dart            # GoRouter route definitions
 ├── core/
-│   ├── service_locator.dart               # GetIt dependency injection setup
 │   ├── data/
-│   │   └── hive_database.dart             # Hive initialization & box access
+│   │   └── hive_database.dart         # Hive init, box accessors
 │   ├── error/
-│   │   └── failure.dart                   # Failure classes for Either returns
+│   │   └── failure.dart               # Failure types (ServerFailure, NetworkFailure)
 │   ├── theme/
-│   │   └── app_theme.dart                 # Material theme with Google Fonts
+│   │   └── app_theme.dart             # Dark/light theme, colors, typography
 │   ├── usecase/
-│   │   └── usecase.dart                   # Generic UseCase<Result, Params> base
+│   │   └── usecase.dart               # Generic UseCase<Type, Params> interface
 │   ├── utils/
-│   │   ├── app_validators.dart            # Form field validators
-│   │   └── printer_helper.dart            # Bluetooth printer ESC/POS helper
-│   └── widgets/
-│       ├── input_label.dart               # Reusable labeled text field
-│       └── primary_button.dart            # Reusable styled action button
+│   │   ├── app_validators.dart        # Form validators
+│   │   └── printer_helper.dart        # ESC/POS Bluetooth printer wrapper
+│   ├── widgets/
+│   │   ├── input_label.dart           # Reusable form label
+│   │   └── primary_button.dart        # Reusable bottom action button
+│   └── service_locator.dart           # GetIt dependency injection setup
 │
 └── features/
-    ├── billing/
+    ├── billing/                       # POS / Shopping cart
     │   ├── domain/entities/
-    │   │   └── cart_item.dart             # CartItem (Product + quantity)
+    │   │   └── cart_item.dart
     │   └── presentation/
     │       ├── bloc/
-    │       │   ├── billing_bloc.dart       # Cart operations & receipt printing
+    │       │   ├── billing_bloc.dart   # Cart management, barcode scan, print
     │       │   ├── billing_event.dart
     │       │   └── billing_state.dart
     │       └── pages/
-    │           ├── home_page.dart          # Main POS screen with scanner
-    │           ├── scanner_page.dart       # Standalone barcode scanner
-    │           └── checkout_page.dart      # Order summary & payment
+    │           ├── home_page.dart      # Shop & Go scanner + cart panel
+    │           ├── scanner_page.dart   # Standalone barcode scanner (returns value)
+    │           └── checkout_page.dart  # Cart review, print receipt, pay
     │
-    ├── product/
-    │   ├── domain/
-    │   │   ├── entities/product.dart       # Product entity
-    │   │   ├── repositories/product_repository.dart
-    │   │   └── usecases/product_usecases.dart
+    ├── payments/                       # Unified payment system
     │   ├── data/
-    │   │   ├── models/product_model.dart   # Hive model (typeId: 0)
-    │   │   ├── models/product_model.g.dart # Generated adapter
-    │   │   └── repositories/product_repository_impl.dart
+    │   │   ├── models/
+    │   │   │   ├── transaction_model.dart      # Hive model (typeId: 2)
+    │   │   │   └── transaction_model.g.dart    # Generated adapter
+    │   │   └── services/
+    │   │       ├── upi_payment_service.dart     # Razorpay SDK integration
+    │   │       ├── crypto_payment_service.dart  # WalletConnect + price oracle
+    │   │       ├── wallet_service.dart          # WalletConnect v2 session mgmt
+    │   │       └── price_oracle_service.dart    # CoinGecko ETH/MATIC prices
+    │   ├── domain/
+    │   │   ├── entities/
+    │   │   │   ├── payment_result.dart  # PaymentResult value object
+    │   │   │   └── merchant.dart        # Merchant entity
+    │   │   └── usecases/
+    │   │       ├── process_upi_payment.dart     # UPI use case
+    │   │       ├── process_crypto_payment.dart  # Crypto use case
+    │   │       └── get_live_crypto_price.dart   # Price fetch use case
     │   └── presentation/
     │       ├── bloc/
-    │       │   ├── product_bloc.dart       # Product CRUD operations
+    │       │   ├── payment_bloc.dart    # QR classification, payment processing
+    │       │   ├── payment_event.dart
+    │       │   └── payment_state.dart
+    │       ├── pages/
+    │       │   ├── intelligent_qr_scan_page.dart  # Universal QR scanner
+    │       │   └── unified_payment_page.dart      # Payment screen (UPI + ETH)
+    │       └── screens/
+    │           ├── upi_checkout_screen.dart
+    │           ├── crypto_checkout_screen.dart
+    │           ├── receipt_screen.dart           # Post-payment receipt + print
+    │           ├── payment_mode_picker_screen.dart
+    │           └── home_screen.dart              # Payment hub / dashboard
+    │
+    ├── product/                        # Product catalog
+    │   ├── data/
+    │   │   ├── models/
+    │   │   │   ├── product_model.dart           # Hive model (typeId: 0)
+    │   │   │   └── product_model.g.dart
+    │   │   └── repositories/
+    │   │       └── product_repository_impl.dart
+    │   ├── domain/
+    │   │   ├── entities/
+    │   │   │   └── product.dart         # Product entity (id, name, barcode, price)
+    │   │   ├── repositories/
+    │   │   │   └── product_repository.dart
+    │   │   └── usecases/
+    │   │       └── product_usecases.dart # CRUD + GetByBarcode
+    │   └── presentation/
+    │       ├── bloc/
+    │       │   ├── product_bloc.dart
     │       │   ├── product_event.dart
     │       │   └── product_state.dart
     │       └── pages/
-    │           ├── product_list_page.dart  # Catalog with search
-    │           ├── add_product_page.dart   # New product form
-    │           └── edit_product_page.dart  # Edit product form
+    │           ├── product_list_page.dart
+    │           ├── add_product_page.dart
+    │           └── edit_product_page.dart
     │
-    ├── shop/
+    ├── shop/                           # Shop/store profile
+    │   ├── data/models/
+    │   │   ├── shop_model.dart          # Hive model (typeId: 1)
+    │   │   └── shop_model.g.dart
+    │   ├── data/repositories/
+    │   │   └── shop_repository_impl.dart
     │   ├── domain/
-    │   │   ├── entities/shop.dart          # Shop entity
+    │   │   ├── entities/shop.dart
     │   │   ├── repositories/shop_repository.dart
     │   │   └── usecases/shop_usecases.dart
-    │   ├── data/
-    │   │   ├── models/shop_model.dart      # Hive model (typeId: 1)
-    │   │   ├── models/shop_model.g.dart    # Generated adapter
-    │   │   └── repositories/shop_repository_impl.dart
     │   └── presentation/
     │       ├── bloc/
-    │       │   ├── shop_bloc.dart          # Load/update shop profile
+    │       │   ├── shop_bloc.dart
     │       │   ├── shop_event.dart
     │       │   └── shop_state.dart
     │       └── pages/
-    │           └── shop_details_page.dart  # Shop profile form
+    │           └── shop_details_page.dart
     │
-    └── settings/
-        ├── domain/repositories/
-        │   └── printer_repository.dart
-        ├── data/repositories/
-        │   └── printer_repository_impl.dart
+    ├── settings/                       # Bluetooth printer management
+    │   ├── data/repositories/
+    │   │   └── printer_repository_impl.dart
+    │   ├── domain/repositories/
+    │   │   └── printer_repository.dart
+    │   └── presentation/
+    │       ├── bloc/
+    │       │   ├── printer_bloc.dart
+    │       │   ├── printer_event.dart
+    │       │   └── printer_state.dart
+    │       └── pages/
+    │           └── settings_page.dart
+    │
+    ├── transactions/                   # Transaction history UI
+    │   └── presentation/
+    │       ├── pages/
+    │       │   └── transaction_page.dart
+    │       └── store/
+    │           └── transaction_store.dart  # In-memory ValueNotifier store
+    │
+    ├── contacts/                       # UPI contacts list
+    │   └── presentation/pages/
+    │       └── contacts_page.dart
+    │
+    ├── dashboard/                      # Main hub
+    │   └── presentation/pages/
+    │       └── home_dashboard.dart
+    │
+    ├── store/                          # Store selection
+    │   └── presentation/pages/
+    │       └── store_selection_page.dart
+    │
+    └── upi/                            # Legacy UPI flow (kept for reference)
         └── presentation/
             ├── bloc/
-            │   ├── printer_bloc.dart       # Printer scan/connect/disconnect
-            │   ├── printer_event.dart
-            │   └── printer_state.dart
+            │   ├── upi_bloc.dart
+            │   ├── upi_event.dart
+            │   └── upi_state.dart
             └── pages/
-                └── settings_page.dart      # Settings hub
+                ├── scan_pay_page.dart
+                ├── payment_page.dart
+                └── success_page.dart
 ```
 
----
+**Total: 78 Dart files across 10 feature modules.**
 
-## Tech Stack
-
-| Category | Package | Purpose |
-|----------|---------|---------|
-| **State Management** | `flutter_bloc` / `bloc` | BLoC pattern for all features |
-| **Dependency Injection** | `get_it` | Service locator for repos, use cases, blocs |
-| **Navigation** | `go_router` | Declarative routing with nested routes |
-| **Database** | `hive` / `hive_flutter` | Local NoSQL storage (products, shop, settings) |
-| **Code Generation** | `hive_generator` / `build_runner` | Hive type adapters |
-| **Functional Programming** | `fpdart` | `Either<Failure, Result>` for error handling |
-| **Barcode Scanning** | `mobile_scanner` | Camera-based barcode/QR scanning |
-| **QR Code** | `pretty_qr_code` | UPI payment QR code generation |
-| **Thermal Printing** | `print_bluetooth_thermal` | Bluetooth ESC/POS printer communication |
-| **UI** | `google_fonts` | Typography (Poppins font family) |
-| **Utilities** | `uuid`, `intl`, `vibration`, `equatable` | ID generation, date formatting, haptic feedback, value equality |
-| **Permissions** | `permission_handler` | Bluetooth & camera runtime permissions |
-| **System** | `app_settings` | Open device Bluetooth settings |
-
----
-
-## Data Flow
-
-### Billing Flow (Main Use Case)
+## Application Flow
 
 ```
-Camera Scanner (HomePage)
-    │
-    ▼
-ScanBarcodeEvent ──► BillingBloc
-    │
-    ▼
-GetProductByBarcodeUseCase ──► ProductRepository ──► Hive (products box)
-    │
-    ▼
-Product found? ──► AddProductToCartEvent ──► Cart updated in BillingState
-    │
-    ▼
-"Review Order" button ──► CheckoutPage
-    │
-    ├──► UPI QR Code displayed (from ShopBloc → shop.upiId + total)
-    │
-    └──► PrintReceiptEvent ──► PrinterHelper
+┌─────────────────────────────────────────────────────────┐
+│                    APP LAUNCH                            │
+│  main.dart → HiveDatabase.init() → ServiceLocator.init()│
+│  → MultiBlocProvider → GoRouter(initialLocation: '/')   │
+└─────────────────┬───────────────────────────────────────┘
+                  ▼
+┌─────────────────────────────────────────────────────────┐
+│                 HOME DASHBOARD (/)                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐  │
+│  │ Scan &   │  │ Shopping │  │ Products │  │Settings│  │
+│  │ Pay      │  │ Mode     │  │ Manage   │  │        │  │
+│  │ /scan    │  │ /shopping│  │ /products│  │/settings│ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────────┘  │
+└───────┼─────────────┼─────────────┼─────────────────────┘
+        │             │             │
+        ▼             ▼             ▼
+   ┌─────────┐  ┌──────────┐  ┌──────────────┐
+   │Universal│  │Shop & Go │  │Product CRUD  │
+   │QR Scan  │  │Scanner + │  │List/Add/Edit │
+   │         │  │Cart Panel│  │with Barcode  │
+   └────┬────┘  └────┬─────┘  └──────────────┘
+        │             │
+        ▼             ▼
+   ┌─────────────────────────────────────┐
+   │         QR CLASSIFICATION           │
+   │                                     │
+   │  "upi://..."  → UPI Payment Flow   │
+   │  "0x..."      → Crypto Payment Flow│
+   │  other        → Add to Cart (POS)  │
+   └──────────┬──────────────────────────┘
               │
-              ├── Auto-reconnect using saved printer MAC (Hive settings box)
-              └── ESC/POS formatted receipt → Bluetooth thermal printer
+              ▼
+   ┌─────────────────────────────────────┐
+   │     UNIFIED PAYMENT PAGE            │
+   │     /payment?type=...               │
+   │                                     │
+   │  ┌─────────────┐ ┌───────────────┐  │
+   │  │ Receiver    │ │ Amount Input  │  │
+   │  │ Details     │ │               │  │
+   │  └─────────────┘ └───────────────┘  │
+   │                                     │
+   │  ┌──────────┐    ┌──────────────┐   │
+   │  │Pay with  │    │Pay with ETH  │   │
+   │  │UPI       │    │              │   │
+   │  └────┬─────┘    └──────┬───────┘   │
+   └───────┼─────────────────┼───────────┘
+           │                 │
+           ▼                 ▼
+   ┌──────────────┐  ┌───────────────────┐
+   │ PaymentBloc  │  │ PaymentBloc       │
+   │ → Razorpay   │  │ → PriceOracle     │
+   │   SDK        │  │ → WalletConnect   │
+   │              │  │ → CryptoService   │
+   └──────┬───────┘  └────────┬──────────┘
+          │                   │
+          ▼                   ▼
+   ┌─────────────────────────────────────┐
+   │         ON SUCCESS                  │
+   │  1. Save TransactionModel → Hive   │
+   │  2. Save KkTransaction → Store     │
+   │  3. Navigate → /payment/receipt     │
+   └─────────────────────────────────────┘
+              │
+              ▼
+   ┌─────────────────────────────────────┐
+   │         RECEIPT SCREEN              │
+   │  • Payment details & TX ID         │
+   │  • Print via Bluetooth             │
+   │  • Done → back to Dashboard        │
+   └─────────────────────────────────────┘
 ```
 
-### Product Management Flow
-
-```
-ProductListPage ──► ProductBloc (LoadProducts) ──► GetAllProductsUseCase
-    │                                                      │
-    │                                                      ▼
-    │                                              ProductRepository
-    │                                                      │
-    │                                                      ▼
-    │                                                 Hive (products box)
-    │
-    ├── Add ──► AddProductPage ──► AddProduct event ──► AddProductUseCase
-    ├── Edit ──► EditProductPage ──► UpdateProduct event ──► UpdateProductUseCase
-    └── Delete ──► DeleteProduct event ──► DeleteProductUseCase
-```
-
-### Shop Profile Flow
-
-```
-ShopDetailsPage ──► ShopBloc (LoadShopEvent) ──► GetShopUseCase
-    │                                                   │
-    │                                                   ▼
-    │                                            ShopRepository
-    │                                                   │
-    │                                                   ▼
-    │                                            Hive (shop box)
-    │                                   (returns defaults if empty)
-    │
-    └── Save ──► UpdateShopEvent ──► UpdateShopUseCase ──► Hive
-```
-
----
-
-## Screens in Detail
-
-### 1. Home Page (POS Scanner) — `/`
-
-The primary billing interface. The top portion (~40%) is a live camera feed using `MobileScanner`. When a barcode is detected:
-- A 2-second cooldown prevents duplicate scans
-- Device vibrates for haptic feedback
-- The barcode is looked up in the product database
-- If found, the product is added to the in-memory cart
-
-The bottom portion shows the cart as a scrollable list with:
-- Product name, price, and quantity controls (+/-)
-- Running total at the bottom
-- "Review Order" button navigates to checkout
-
-The app bar provides quick access to settings, torch toggle, and camera flip.
-
-### 2. Scanner Page — `/scanner`
-
-A standalone barcode scanner used by the product management screens. Scans a single barcode and returns the result via `context.pop(barcode)`. Uses `DetectionSpeed.noDuplicates` to avoid multiple reads.
-
-### 3. Checkout Page — `/checkout`
-
-Displays:
-- Itemized order table (name, qty, price, total per item)
-- Grand total
-- UPI QR code (if shop has a UPI ID configured) encoding `upi://pay?pa=<upiId>&pn=<shopName>&am=<total>`
-- "Print Receipt" button that sends a formatted receipt to the connected Bluetooth printer
-- Back navigation clears the cart and returns to home
-
-### 4. Product List Page — `/products`
-
-A searchable catalog of all products stored in Hive. Features:
-- Real-time search filtering by product name
-- Scan button to find a product by barcode
-- Tap to edit, long-press or icon to delete (with confirmation dialog)
-- FAB to add a new product
-
-### 5. Add Product Page — `/products/add`
-
-Form with fields for:
-- **Barcode** — manual entry or scan via camera (navigates to `/scanner`)
-- **Product Name** — required text field
-- **Price** — validated as a positive number
-- Checks for duplicate barcodes before saving
-- Generates a UUID for the product ID
-
-### 6. Edit Product Page — `/products/edit/:id`
-
-Pre-populated form showing the selected product. Barcode is read-only. Allows editing name and price.
-
-### 7. Shop Details Page — `/shop`
-
-Form to manage the shop profile used in receipt headers and UPI QR codes:
-- Shop Name
-- Address Line 1 & 2
-- Phone Number
-- UPI ID
-- Receipt Footer Text
-
-Loads existing data (or hardcoded defaults) on init. Saves to Hive on submit.
-
-### 8. Settings Page — `/settings`
-
-Central hub with:
-- Shop profile summary header (name, address, phone from `ShopBloc`)
-- Navigation links to Product Catalog and Shop Details
-- Printer management section:
-  - Connected printer name and status
-  - Refresh button (scans bonded Bluetooth devices, auto-connects)
-  - Open Bluetooth settings shortcut
-- Printer auto-connect attempts each bonded device until one responds
-
----
-
-## Data Models
-
-### Product
-
-| Field | Type | Hive Field | Description |
-|-------|------|------------|-------------|
-| `id` | `String` | 0 | UUID, unique identifier |
-| `name` | `String` | 1 | Product display name |
-| `barcode` | `String` | 2 | Scannable barcode value |
-| `price` | `double` | 3 | Unit price |
-| `stock` | `int` | 4 | Stock count (default 0, reserved for future use) |
-
-**Hive TypeId:** `0`
-
-### Shop
-
-| Field | Type | Hive Field | Description |
-|-------|------|------------|-------------|
-| `name` | `String` | 0 | Shop/business name |
-| `addressLine1` | `String` | 1 | Primary address |
-| `addressLine2` | `String` | 2 | Secondary address (city, state) |
-| `phoneNumber` | `String` | 3 | Contact phone |
-| `upiId` | `String` | 4 | UPI payment ID for QR generation |
-| `footerText` | `String` | 5 | Custom receipt footer message |
-
-**Hive TypeId:** `1`
-
-### CartItem (In-Memory Only)
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `product` | `Product` | Reference to the scanned product |
-| `quantity` | `int` | Number of units in cart |
-| `total` | `double` | Computed: `product.price * quantity` |
-
----
-
-## State Management (BLoC)
-
-### BillingBloc
-
-Manages the in-memory shopping cart. Not persisted across app restarts.
-
-| Event | Description |
-|-------|-------------|
-| `ScanBarcodeEvent(barcode)` | Looks up product by barcode, adds to cart if found |
-| `AddProductToCartEvent(product)` | Adds a product or increments quantity |
-| `RemoveProductFromCartEvent(product)` | Decrements quantity or removes if qty = 1 |
-| `ClearCartEvent` | Empties the entire cart |
-| `PrintReceiptEvent(shopName, address, phone, footer)` | Formats and sends receipt to Bluetooth printer |
-
-| State | Description |
-|-------|-------------|
-| `BillingInitial` | Empty cart |
-| `BillingLoaded(items, total)` | Cart with items and computed grand total |
-| `BillingError(message)` | Error state (product not found, print failure) |
-
-### ProductBloc
-
-Manages CRUD operations for the product catalog.
-
-| Event | Description |
-|-------|-------------|
-| `LoadProducts` | Fetches all products from Hive |
-| `AddProduct(product)` | Saves a new product |
-| `UpdateProduct(product)` | Updates an existing product |
-| `DeleteProduct(id)` | Removes a product by ID |
-
-| State | Description |
-|-------|-------------|
-| `ProductInitial` | Not loaded |
-| `ProductLoading` | Fetching data |
-| `ProductLoaded(products)` | List of all products |
-| `ProductError(message)` | Error state |
-
-### ShopBloc
-
-Manages the single shop profile record.
-
-| Event | Description |
-|-------|-------------|
-| `LoadShopEvent` | Loads shop from Hive (or defaults) |
-| `UpdateShopEvent(shop)` | Saves updated shop profile |
-
-| State | Description |
-|-------|-------------|
-| `ShopInitial` | Not loaded |
-| `ShopLoading` | Fetching data |
-| `ShopLoaded(shop)` | Shop profile loaded |
-| `ShopError(message)` | Error state |
-
-### PrinterBloc
-
-Manages Bluetooth thermal printer connectivity.
-
-| Event | Description |
-|-------|-------------|
-| `InitPrinterEvent` | Initialize printer subsystem |
-| `RefreshPrinterEvent` | Scan bonded devices, auto-connect |
-| `ScanPrintersEvent` | List available Bluetooth devices |
-| `ConnectPrinterEvent(mac, name)` | Connect to a specific printer |
-| `DisconnectPrinterEvent` | Disconnect current printer |
-| `TestPrintEvent` | Send a test print |
-
-| State | Description |
-|-------|-------------|
-| `PrinterInitial` | Not initialized |
-| `PrinterConnecting` | Connection in progress |
-| `PrinterConnected(name)` | Successfully connected |
-| `PrinterDisconnected` | No printer connected |
-| `PrinterError(message)` | Error state |
-
----
-
-## Routing
-
-Defined in `lib/config/routes/app_routes.dart` using `go_router`:
-
-```
-/                       → HomePage (POS Scanner + Cart)
-├── /scanner            → ScannerPage (standalone barcode scan)
-└── /checkout           → CheckoutPage (order summary + payment)
-
-/settings               → SettingsPage (hub)
-
-/products               → ProductListPage (catalog)
-├── /products/add       → AddProductPage
-└── /products/edit/:id  → EditProductPage
-
-/shop                   → ShopDetailsPage (profile form)
-```
-
----
-
-## Dependency Injection
-
-Configured in `lib/core/service_locator.dart` using `get_it`:
-
-```
-Repositories (Lazy Singletons):
-  ProductRepository → ProductRepositoryImpl
-  ShopRepository    → ShopRepositoryImpl
-  PrinterRepository → PrinterRepositoryImpl
-
-Use Cases (Lazy Singletons):
-  GetAllProductsUseCase
-  AddProductUseCase
-  UpdateProductUseCase
-  DeleteProductUseCase
-  GetProductByBarcodeUseCase
-  GetShopUseCase
-  UpdateShopUseCase
-
-BLoCs (Factories — new instance each time):
-  ProductBloc
-  ShopBloc
-  PrinterBloc
-
-Note: BillingBloc is created directly in main.dart, not via GetIt.
-```
-
----
-
-## Database (Hive)
-
-All data is stored locally using Hive NoSQL boxes:
-
-| Box Name | Type | Key Strategy | Contents |
-|----------|------|-------------|----------|
-| `products` | `Box<ProductModel>` | Product UUID as key | All products in the catalog |
-| `shop` | `Box<ShopModel>` | Fixed key `shop_details` | Single shop profile record |
-| `settings` | `Box` (dynamic) | String keys | `printer_mac`, `printer_name` |
-
-Initialization happens in `HiveDatabase.init()` called from `main()` before the app starts:
-1. `Hive.initFlutter()` — sets up Hive with the app's documents directory
-2. Registers `ProductModelAdapter` and `ShopModelAdapter`
-3. Opens all three boxes
-
----
-
-## Thermal Printing
-
-Receipt printing uses `PrinterHelper` — a singleton utility that communicates with Bluetooth ESC/POS thermal printers via `print_bluetooth_thermal`.
-
-### Receipt Format
-
-```
-================================
-        SHOP NAME
-   Address Line 1
-   Address Line 2
-   Phone: 1234567890
-================================
-Date: 24/03/2026    Time: 14:30
---------------------------------
-Item         Qty  Price   Total
---------------------------------
-Product A      2  10.00   20.00
-Product B      1  25.00   25.00
---------------------------------
-GRAND TOTAL:            ₹45.00
-================================
-      Footer Text Here
-    Thank You! Visit Again!
-================================
-```
-
-### Printer Workflow
-
-1. **Settings Page** → Refresh scans bonded Bluetooth devices and auto-connects
-2. Connected printer's MAC address and name are saved to Hive `settings` box
-3. During checkout → Print dispatches `PrintReceiptEvent`
-4. `BillingBloc` reads saved MAC from Hive, reconnects if needed, then sends ESC/POS commands
-5. Manual ESC/POS byte sequences handle text alignment, bold, and paper cutting
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Flutter SDK `^3.8.1`
-- Dart SDK (bundled with Flutter)
-- Android Studio or VS Code with Flutter extensions
-- An Android device/emulator (for barcode scanning and Bluetooth)
-
-### Installation
+## State Management
+
+| Bloc / Store | Scope | Purpose |
+|---|---|---|
+| `BillingBloc` | Global | Shopping cart, barcode scan, receipt print |
+| `PaymentBloc` | Global | QR classification, UPI/crypto payment processing |
+| `ProductBloc` | Global | Product CRUD, search |
+| `ShopBloc` | Global | Shop profile (name, address, footer) |
+| `PrinterBloc` | Global | Bluetooth printer discovery and connection |
+| `UpiBloc` | Global | UPI payee state (legacy, used by contacts page) |
+| `TransactionStore` | Static | In-memory `ValueNotifier<List>` for transaction tab |
+
+## Data Persistence (Hive)
+
+| Box Name | Type | TypeId | Purpose |
+|---|---|---|---|
+| `products` | `Box<ProductModel>` | 0 | Product catalog |
+| `shop` | `Box<ShopModel>` | 1 | Shop profile |
+| `transactions` | `Box<TransactionModel>` | 2 | Payment history |
+| `settings` | `Box` (dynamic) | -- | Printer MAC, preferences |
+
+## Route Map
+
+| Path | Page | Description |
+|---|---|---|
+| `/` | `HomeDashboard` | Main hub with navigation cards |
+| `/scan` | `IntelligentQrScanPage` | Universal QR scanner |
+| `/shopping` | `HomePage` | Shop & Go mode (camera + cart) |
+| `/checkout` | `CheckoutPage` | Cart review and print |
+| `/payment` | `UnifiedPaymentPage` | Payment with UPI/ETH buttons |
+| `/payment/upi` | `UpiCheckoutScreen` | Direct UPI checkout |
+| `/payment/crypto` | `CryptoCheckoutScreen` | Direct crypto checkout |
+| `/payment/receipt` | `ReceiptScreen` | Post-payment receipt |
+| `/payment/picker` | `PaymentModePickerScreen` | Payment method selection |
+| `/products` | `ProductListPage` | Product catalog management |
+| `/products/add` | `AddProductPage` | Add new product |
+| `/products/edit/:id` | `EditProductPage` | Edit existing product |
+| `/shop` | `ShopDetailsPage` | Edit shop profile |
+| `/settings` | `SettingsPage` | Printer and app settings |
+| `/store` | `StoreSelectionPage` | Store selection |
+| `/scanner` | `ScannerPage` | Simple barcode scanner (returns value) |
+
+## Dependencies
+
+### Core
+| Package | Purpose |
+|---|---|
+| `flutter_bloc` / `bloc` | State management |
+| `get_it` | Dependency injection |
+| `equatable` | Value equality for Bloc states/events |
+| `fpdart` | `Either<Failure, T>` for error handling |
+| `go_router` | Declarative routing |
+
+### Storage
+| Package | Purpose |
+|---|---|
+| `hive` / `hive_flutter` | Local NoSQL database |
+| `flutter_secure_storage` | Encrypted storage for WalletConnect sessions |
+
+### UI
+| Package | Purpose |
+|---|---|
+| `google_fonts` | IBM Plex Sans typography |
+| `vibration` | Haptic feedback on scan |
+| `intl` | Date formatting |
+
+### Hardware
+| Package | Purpose |
+|---|---|
+| `mobile_scanner` | Camera-based QR/barcode scanning |
+| `print_bluetooth_thermal` | ESC/POS Bluetooth thermal printer |
+| `permission_handler` | Camera and Bluetooth permissions |
+
+### Payments
+| Package | Purpose |
+|---|---|
+| `razorpay_flutter` | UPI payment processing |
+| `walletconnect_flutter_v2` | Crypto wallet connection (MetaMask, etc.) |
+| `dio` | HTTP client for CoinGecko price API |
+
+### Utilities
+| Package | Purpose |
+|---|---|
+| `uuid` | Generate unique product IDs |
+| `url_launcher` | Deep link to wallet apps |
+| `app_settings` | Open device settings for permissions |
+| `json_annotation` | Serialization annotations |
+
+## Build & APK Size Optimization
+
+The release build is optimized with:
+
+1. **R8 minification** (`isMinifyEnabled = true`) -- Dead code elimination
+2. **Resource shrinking** (`isShrinkResources = true`) -- Remove unused Android resources
+3. **ProGuard rules** -- Keep Razorpay, WalletConnect, and Flutter classes
+4. **ABI filtering** -- Only `armeabi-v7a` and `arm64-v8a` (drops x86/x86_64 emulator libs)
+5. **Removed unused packages** -- `pretty_qr_code`, `web3dart` (direct), `http` (direct)
+
+### Build Commands
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd billing_fixed
-
-# Install dependencies
-flutter pub get
-
-# Generate Hive adapters (if .g.dart files are missing)
-flutter pub run build_runner build --delete-conflicting-outputs
-
-# Run the app
-flutter run
-```
-
----
-
-## Build & Run
-
-```bash
-# Debug mode
+# Debug
 flutter run
 
 # Release APK
 flutter build apk --release
 
-# Release App Bundle
+# Release App Bundle (recommended for Play Store)
 flutter build appbundle --release
+
+# Split APK per ABI (smallest individual APKs)
+flutter build apk --release --split-per-abi
 ```
 
-### Permissions Required
+> **Tip:** Use `--split-per-abi` for the smallest APK per device. The fat APK
+> includes native libraries for both ARM architectures.
 
-- **Camera** — for barcode scanning
-- **Bluetooth** — for thermal printer connectivity
-- **Bluetooth Connect/Scan** — for discovering and pairing printers (Android 12+)
+## Setup
 
----
+1. **Clone and install dependencies:**
+   ```bash
+   git clone <repo-url>
+   cd billing_fixed
+   flutter pub get
+   ```
+
+2. **Configure Razorpay** (for UPI payments):
+   Edit `lib/features/payments/data/services/upi_payment_service.dart`:
+   ```dart
+   'key': 'rzp_test_YOUR_KEY_HERE',  // Replace with your Razorpay key
+   ```
+
+3. **Configure WalletConnect** (for crypto payments):
+   Edit `lib/features/payments/data/services/wallet_service.dart`:
+   ```dart
+   const _kProjectId = 'YOUR_WALLETCONNECT_PROJECT_ID';
+   ```
+   Get a project ID from [cloud.walletconnect.com](https://cloud.walletconnect.com/).
+
+4. **Run the app:**
+   ```bash
+   flutter run
+   ```
+
+5. **Generate Hive adapters** (if models change):
+   ```bash
+   dart run build_runner build --delete-conflicting-outputs
+   ```
+
+## Minimum Requirements
+
+- Flutter SDK: 3.8.1+
+- Dart SDK: 3.8.1+
+- Android: minSdk 21 (Android 5.0)
+- iOS: 12.0+
 
 ## License
 
-This project is private and not published to pub.dev.
+Private project. Not for redistribution.

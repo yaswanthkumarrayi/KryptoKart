@@ -1,72 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pretty_qr_code/pretty_qr_code.dart';
 import '../../../../core/theme/app_theme.dart';
-
 import '../../../shop/presentation/bloc/shop_bloc.dart';
-import '../../../transactions/presentation/store/transaction_store.dart';
 import '../bloc/billing_bloc.dart';
 
-enum PaymentMethod { upi, eth }
-
-class CheckoutPage extends StatefulWidget {
+class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
 
-  @override
-  State<CheckoutPage> createState() => _CheckoutPageState();
-}
-
-class _CheckoutPageState extends State<CheckoutPage> {
-  PaymentMethod _selectedPaymentMethod = PaymentMethod.upi;
-  static const double _ethRateInInr = 315000;
-
-  void _markPaymentSuccess({
-    required BillingState billingState,
-    required PaymentMethod method,
-  }) {
-    final label = method == PaymentMethod.upi ? 'UPI' : 'ETH';
-    final amountText = billingState.totalAmount.toStringAsFixed(2);
-    final time = TimeOfDay.now().format(context);
-    TransactionStore.add(
-      KkTransaction(
-        type: KkTransactionType.shopping,
-        amount: billingState.totalAmount,
-        title: 'Shopping Checkout - $label',
-        date: DateTime.now(),
-      ),
-    );
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF141B31),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Color(0xFF45D483)),
-            SizedBox(width: 8),
-            Text('Payment Successful'),
-          ],
-        ),
-        content: Text(
-          '$label payment of Rs $amountText marked as successful at $time.',
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context.read<BillingBloc>().add(ClearCartEvent());
-              context.go('/shopping');
-            },
-            child: const Text('Continue Shopping'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _printReceipt(ShopState shopState) {
+  void _printReceipt(BuildContext context, ShopState shopState) {
     if (shopState is ShopLoaded) {
       context.read<BillingBloc>().add(
         PrintReceiptEvent(
@@ -79,7 +21,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
       return;
     }
-
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Shop details not loaded'),
@@ -94,24 +35,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
       canPop: false,
       onPopInvokedWithResult: (bool didPop, dynamic result) {
         if (didPop) return;
-        context.read<BillingBloc>().add(ClearCartEvent());
         context.go('/shopping');
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Shopping Checkout'),
-          leading: IconButton(
-            icon: const Icon(Icons.chevron_left, size: 28),
-            onPressed: () {
-              context.read<BillingBloc>().add(ClearCartEvent());
-              context.go('/shopping');
-            },
-          ),
-        ),
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF080B16), Color(0xFF121A2D)],
+              colors: [Color(0xFF0B0F1E), Color(0xFF151B33), Color(0xFF0B0F1E)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -130,246 +60,66 @@ class _CheckoutPageState extends State<CheckoutPage> {
             builder: (context, billingState) {
               return BlocBuilder<ShopBloc, ShopState>(
                 builder: (context, shopState) {
-                  String upiId = '';
                   String shopName = 'Shop';
-                  const shopWallet = '0x7bA3F95fA2...9E21';
+                  String upiId = '';
+                  String ethAddress = '0x7bA3F95fA2...9E21';
 
                   if (shopState is ShopLoaded) {
-                    upiId = shopState.shop.upiId;
                     shopName = shopState.shop.name;
+                    upiId = shopState.shop.upiId;
                   }
 
-                  final bool showUpiQr =
-                      _selectedPaymentMethod == PaymentMethod.upi;
-                  final ethAmount = billingState.totalAmount / _ethRateInInr;
+                  final total = billingState.totalAmount;
 
-                  return ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-                    children: [
-                      _GlassSection(
-                        child: Row(
-                          children: [
-                            const Icon(Icons.storefront_rounded),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                shopName,
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                            Text(
-                              'Rs ${billingState.totalAmount.toStringAsFixed(2)}',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.w800),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      _GlassSection(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Cart Items',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 10),
-                            if (billingState.cartItems.isEmpty)
-                              const Text('No items in cart')
-                            else
-                              ...billingState.cartItems.map(
-                                (item) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          '${item.quantity} x ${item.product.name}',
-                                        ),
-                                      ),
-                                      Text(
-                                        'Rs ${item.total.toStringAsFixed(2)}',
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      _GlassSection(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Payment Option',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _PaymentOptionCard(
-                                    title: 'UPI',
-                                    subtitle: 'Scan and pay',
-                                    icon: Icons.qr_code_2_rounded,
-                                    isSelected:
-                                        _selectedPaymentMethod ==
-                                        PaymentMethod.upi,
-                                    onTap: () => setState(
-                                      () => _selectedPaymentMethod =
-                                          PaymentMethod.upi,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: _PaymentOptionCard(
-                                    title: 'ETH',
-                                    subtitle: 'Crypto transfer',
-                                    icon: Icons.currency_bitcoin_rounded,
-                                    isSelected:
-                                        _selectedPaymentMethod ==
-                                        PaymentMethod.eth,
-                                    onTap: () => setState(
-                                      () => _selectedPaymentMethod =
-                                          PaymentMethod.eth,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      if (showUpiQr)
-                        _GlassSection(
-                          child: Column(
+                  return SafeArea(
+                    child: Column(
+                      children: [
+                        _buildAppBar(context),
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                             children: [
-                              Text(
-                                'Scan to Pay (UPI)',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              _AmountHero(total: total, shopName: shopName),
+                              const SizedBox(height: 20),
+                              _CartSummary(items: billingState.cartItems),
+                              const SizedBox(height: 24),
+                              const _SectionLabel(text: 'Select Payment Method'),
+                              const SizedBox(height: 14),
+                              _PaymentMethodCard(
+                                icon: Icons.account_balance_rounded,
+                                title: 'Pay with UPI',
+                                subtitle: 'Fast & instant via Razorpay',
+                                gradientColors: const [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                                onTap: () {
+                                  context.push('/payment/upi', extra: {
+                                    'upiId': upiId,
+                                    'amountInr': total,
+                                  });
+                                },
                               ),
-                              const SizedBox(height: 12),
-                              if (upiId.isNotEmpty)
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: SizedBox(
-                                    width: 180,
-                                    height: 180,
-                                    child: PrettyQrView.data(
-                                      data:
-                                          'upi://pay?pa=$upiId&pn=$shopName&am=${billingState.totalAmount.toStringAsFixed(2)}&cu=INR',
-                                    ),
-                                  ),
-                                )
-                              else
-                                const Text(
-                                  'UPI ID missing in shop details.',
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                            ],
-                          ),
-                        )
-                      else
-                        _GlassSection(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'ETH Summary',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              const SizedBox(height: 14),
+                              _PaymentMethodCard(
+                                icon: Icons.currency_bitcoin_rounded,
+                                title: 'Pay with Crypto',
+                                subtitle: 'ETH & MATIC on Polygon',
+                                gradientColors: const [Color(0xFFE65100), Color(0xFFFF9800)],
+                                onTap: () {
+                                  context.push('/payment/crypto', extra: {
+                                    'ethAddress': ethAddress,
+                                    'amountInr': total,
+                                  });
+                                },
                               ),
-                              const SizedBox(height: 10),
-                              _summaryRow('Wallet', shopWallet),
-                              _summaryRow(
-                                'INR Amount',
-                                'Rs ${billingState.totalAmount.toStringAsFixed(2)}',
-                              ),
-                              _summaryRow(
-                                'ETH Amount',
-                                '${ethAmount.toStringAsFixed(6)} ETH',
+                              const SizedBox(height: 24),
+                              _PrintButton(
+                                isPrinting: billingState.isPrinting,
+                                onPressed: () => _printReceipt(context, shopState),
                               ),
                             ],
                           ),
                         ),
-                      const SizedBox(height: 18),
-                      FilledButton.icon(
-                        onPressed: () {
-                          if (_selectedPaymentMethod == PaymentMethod.upi &&
-                              upiId.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Please set a UPI ID in shop details first.',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-                          _markPaymentSuccess(
-                            billingState: billingState,
-                            method: _selectedPaymentMethod,
-                          );
-                        },
-                        icon: Icon(
-                          _selectedPaymentMethod == PaymentMethod.upi
-                              ? Icons.verified_rounded
-                              : Icons.currency_bitcoin_rounded,
-                        ),
-                        label: Text(
-                          _selectedPaymentMethod == PaymentMethod.upi
-                              ? 'Confirm UPI Payment'
-                              : 'Confirm ETH Payment',
-                        ),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(54),
-                          backgroundColor: AppTheme.primaryColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      OutlinedButton.icon(
-                        onPressed: billingState.isPrinting
-                            ? null
-                            : () => _printReceipt(shopState),
-                        icon: billingState.isPrinting
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.print_rounded),
-                        label: const Text('Print Receipt'),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(
-                            color: AppTheme.cardBorderColor,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   );
                 },
               );
@@ -380,18 +130,48 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _summaryRow(String label, String value) {
+  Widget _buildAppBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
         children: [
-          Text(label, style: const TextStyle(color: Colors.white70)),
+          IconButton(
+            icon: const Icon(Icons.chevron_left, size: 30, color: Colors.white),
+            onPressed: () => context.go('/shopping'),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Checkout',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
           const Spacer(),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF45D483),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  'Secure',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ],
             ),
           ),
         ],
@@ -400,78 +180,293 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 }
 
-class _GlassSection extends StatelessWidget {
-  final Widget child;
-
-  const _GlassSection({required this.child});
+class _AmountHero extends StatelessWidget {
+  final double total;
+  final String shopName;
+  const _AmountHero({required this.total, required this.shopName});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0x2B171F3A),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2A1F5E), Color(0xFF1A1240)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.cardBorderColor),
+        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withValues(alpha: 0.12),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: AppTheme.primaryColor.withValues(alpha: 0.15),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      child: child,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.storefront_rounded, color: Colors.white70, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  shopName,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Total Amount',
+            style: TextStyle(color: Colors.white54, fontSize: 13),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '\u20B9 ${total.toStringAsFixed(2)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _PaymentOptionCard extends StatelessWidget {
+class _CartSummary extends StatelessWidget {
+  final List items;
+  const _CartSummary({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0x1C1A2240),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.cardBorderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.shopping_bag_outlined, size: 18, color: Colors.white60),
+              const SizedBox(width: 8),
+              Text(
+                'Cart  ·  ${items.length} item${items.length > 1 ? 's' : ''}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${item.quantity}x',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      item.product.name,
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ),
+                  Text(
+                    '\u20B9 ${item.total.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w700,
+        fontSize: 16,
+      ),
+    );
+  }
+}
+
+class _PaymentMethodCard extends StatelessWidget {
+  final IconData icon;
   final String title;
   final String subtitle;
-  final IconData icon;
-  final bool isSelected;
+  final List<Color> gradientColors;
   final VoidCallback onTap;
 
-  const _PaymentOptionCard({
+  const _PaymentMethodCard({
+    required this.icon,
     required this.title,
     required this.subtitle,
-    required this.icon,
-    required this.isSelected,
+    required this.gradientColors,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = isSelected
-        ? Theme.of(context).colorScheme.primary
-        : AppTheme.cardBorderColor;
-    final bgColor = isSelected
-        ? const Color(0x57382771)
-        : const Color(0x1C131B33);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Ink(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: borderColor, width: isSelected ? 1.6 : 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 20, color: Colors.white),
-            const SizedBox(height: 10),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(fontSize: 12, color: Colors.white70),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                gradientColors[0].withValues(alpha: 0.15),
+                gradientColors[1].withValues(alpha: 0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: gradientColors[0].withValues(alpha: 0.35),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradientColors),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: gradientColors[0].withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: gradientColors[0].withValues(alpha: 0.7),
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrintButton extends StatelessWidget {
+  final bool isPrinting;
+  final VoidCallback onPressed;
+  const _PrintButton({required this.isPrinting, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: isPrinting ? null : onPressed,
+      icon: isPrinting
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.print_rounded),
+      label: Text(isPrinting ? 'Printing...' : 'Print Receipt'),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        foregroundColor: Colors.white70,
+        side: const BorderSide(color: AppTheme.cardBorderColor),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
     );

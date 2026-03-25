@@ -16,20 +16,30 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   final MobileScannerController _scannerController = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
     returnImage: false,
   );
 
+  late final AnimationController _pulseController;
   bool _isCameraOn = true;
   bool _isFlashOn = false;
-
-  // Cooldown mapping to prevent rapid firing of the same barcode
   final Map<String, DateTime> _lastScanTimes = {};
 
   @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
+  }
+
+  @override
   void dispose() {
+    _pulseController.dispose();
     _scannerController.dispose();
     super.dispose();
   }
@@ -48,36 +58,34 @@ class _HomePageState extends State<HomePage> {
       if (barcode.rawValue != null) {
         final rawValue = barcode.rawValue!;
 
-        // Cooldown logic: 2 seconds per identical barcode
         if (_lastScanTimes.containsKey(rawValue)) {
           final lastScan = _lastScanTimes[rawValue]!;
-          if (now.difference(lastScan).inSeconds < 2) {
-            continue;
-          }
+          if (now.difference(lastScan).inSeconds < 2) continue;
         }
 
         _lastScanTimes[rawValue] = now;
 
-        // Vibrate
         final hasVibrator = await Vibration.hasVibrator();
-        if (hasVibrator == true) {
-          Vibration.vibrate();
-        }
+        if (hasVibrator == true) Vibration.vibrate();
 
         if (mounted) {
           context.read<BillingBloc>().add(ScanBarcodeEvent(rawValue));
         }
-        break; // Process one barcode at a time per frame
+        break;
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+    final screenH = MediaQuery.of(context).size.height;
+    final scannerH = screenH * 0.42;
+
     return Scaffold(
       body: BlocListener<BillingBloc, BillingState>(
-        listenWhen: (previous, current) =>
-            previous.error != current.error && current.error != null,
+        listenWhen: (prev, curr) =>
+            prev.error != curr.error && curr.error != null,
         listener: (context, state) {
           if (state.error != null) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -91,18 +99,17 @@ class _HomePageState extends State<HomePage> {
         },
         child: Stack(
           children: [
-            // SCANNER VIEW (TOP 50%)
+            // Scanner fills top portion
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              height: MediaQuery.of(context).size.height * 0.4,
-              child: _buildScannerSection(),
+              height: scannerH,
+              child: _buildScannerSection(topPad),
             ),
-
-            // BOTTOM PANEL (BOTTOM 50% + OVERLAP)
+            // Bottom panel overlaps scanner slightly
             Positioned(
-              top: (MediaQuery.of(context).size.height * 0.4) - 24, // overlap
+              top: scannerH - 24,
               left: 0,
               right: 0,
               bottom: 0,
@@ -129,107 +136,140 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildScannerSection() {
+  Widget _buildScannerSection(double topPad) {
     return Container(
       color: Colors.black,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          MobileScanner(controller: _scannerController, onDetect: _onDetect),
+          MobileScanner(
+              controller: _scannerController, onDetect: _onDetect),
           if (!_isCameraOn) _buildCameraOffState(),
 
+          // Gradient vignette for contrast
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.center,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.55),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Top bar: Exit (left) + mode badge (center) + controls (right)
           Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            left: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            top: topPad + 8,
+            left: 12,
+            right: 12,
+            child: Row(
               children: [
+                // Exit button
+                _TopBarButton(
+                  icon: Icons.close_rounded,
+                  label: 'Exit',
+                  onTap: _exitShoppingMode,
+                ),
+                const Spacer(),
+                // Mode badge
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                      horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.black45,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white24),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    'Shop & Go Mode',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.shopping_bag_rounded,
+                          color: Colors.white, size: 14),
+                      SizedBox(width: 6),
+                      Text(
+                        'Shop & Go',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                FilledButton.icon(
-                  onPressed: _exitShoppingMode,
-                  icon: const Icon(Icons.home_rounded, size: 18),
-                  label: const Text('Exit'),
-                ),
-              ],
-            ),
-          ),
-
-          // Overlay Actions (Top Right)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            right: 16,
-            child: Column(
-              children: [
-                if (_isCameraOn)
-                  _buildOverlayButton(
-                    icon: _isFlashOn
-                        ? Icons.flashlight_off
-                        : Icons.flashlight_on,
-                    onPressed: () {
-                      setState(() => _isFlashOn = !_isFlashOn);
-                      _scannerController.toggleTorch();
-                    },
-                  ),
-                if (_isCameraOn) const SizedBox(height: 16),
-                _buildOverlayButton(
-                  icon: _isCameraOn ? Icons.videocam : Icons.videocam_off,
-                  // color:  Colors.white24 ,
-                  onPressed: () {
-                    setState(() {
-                      _isCameraOn = !_isCameraOn;
-                    });
-                    if (_isCameraOn) {
-                      _scannerController.start();
-                    } else {
-                      _scannerController.stop();
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          // Central Overlay Bounding Box
-          if (_isCameraOn)
-            Center(
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: AppTheme.cardBorderColor,
-                    width: 1.8,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Stack(
+                const Spacer(),
+                // Action buttons
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Corners
-                    _buildCorner(Alignment.topLeft),
-                    _buildCorner(Alignment.topRight),
-                    _buildCorner(Alignment.bottomLeft),
-                    _buildCorner(Alignment.bottomRight),
+                    if (_isCameraOn)
+                      _TopBarIconButton(
+                        icon: _isFlashOn
+                            ? Icons.flash_off_rounded
+                            : Icons.flash_on_rounded,
+                        onTap: () {
+                          setState(() => _isFlashOn = !_isFlashOn);
+                          _scannerController.toggleTorch();
+                        },
+                      ),
+                    if (_isCameraOn) const SizedBox(width: 8),
+                    _TopBarIconButton(
+                      icon: _isCameraOn
+                          ? Icons.videocam_rounded
+                          : Icons.videocam_off_rounded,
+                      onTap: () {
+                        setState(() => _isCameraOn = !_isCameraOn);
+                        _isCameraOn
+                            ? _scannerController.start()
+                            : _scannerController.stop();
+                      },
+                    ),
                   ],
                 ),
+              ],
+            ),
+          ),
+
+          // Scan reticle
+          if (_isCameraOn)
+            Center(
+              child: AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  final glow = 0.15 + (_pulseController.value * 0.2);
+                  return Container(
+                    width: 220,
+                    height: 220,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: AppTheme.neonColor.withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.neonColor.withValues(alpha: glow),
+                          blurRadius: 24,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        _buildCorner(Alignment.topLeft),
+                        _buildCorner(Alignment.topRight),
+                        _buildCorner(Alignment.bottomLeft),
+                        _buildCorner(Alignment.bottomRight),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
         ],
@@ -239,7 +279,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildCameraOffState() {
     return Container(
-      color: const Color(0xFF1E293B), // slate-800
+      color: const Color(0xFF1E293B),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -247,15 +287,11 @@ class _HomePageState extends State<HomePage> {
             width: 64,
             height: 64,
             decoration: const BoxDecoration(
-              color: Color(0xFF334155), // slate-700
+              color: Color(0xFF334155),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: const Icon(
-              Icons.videocam_off,
-              color: Colors.white,
-              size: 32,
-            ),
+            child: const Icon(Icons.videocam_off, color: Colors.white, size: 32),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -270,7 +306,7 @@ class _HomePageState extends State<HomePage> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 32),
             child: Text(
-              'Turn on your camera to start scanning barcodes and items automatically.',
+              'Turn on your camera to start scanning barcodes.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
@@ -283,13 +319,12 @@ class _HomePageState extends State<HomePage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             icon: const Icon(Icons.videocam),
-            label: const Text(
-              'Turn on Camera',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            label: const Text('Turn on Camera',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             onPressed: () {
               setState(() => _isCameraOn = true);
               _scannerController.start();
@@ -300,54 +335,30 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildOverlayButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-    Color? color,
-  }) {
-    return Container(
-      width: 44,
-      height: 44,
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: color ?? Colors.black45,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white24),
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: Colors.white),
-        onPressed: onPressed,
-      ),
-    );
-  }
-
   Widget _buildCorner(Alignment alignment) {
+    final isTop = alignment == Alignment.topLeft ||
+        alignment == Alignment.topRight;
+    final isLeft = alignment == Alignment.topLeft ||
+        alignment == Alignment.bottomLeft;
+
     return Align(
       alignment: alignment,
       child: Container(
-        width: 32,
-        height: 32,
+        width: 28,
+        height: 28,
         decoration: BoxDecoration(
           border: Border(
-            top:
-                (alignment == Alignment.topLeft ||
-                    alignment == Alignment.topRight)
-                ? const BorderSide(color: AppTheme.neonColor, width: 4)
+            top: isTop
+                ? const BorderSide(color: AppTheme.neonColor, width: 3)
                 : BorderSide.none,
-            bottom:
-                (alignment == Alignment.bottomLeft ||
-                    alignment == Alignment.bottomRight)
-                ? const BorderSide(color: AppTheme.neonColor, width: 4)
+            bottom: !isTop
+                ? const BorderSide(color: AppTheme.neonColor, width: 3)
                 : BorderSide.none,
-            left:
-                (alignment == Alignment.topLeft ||
-                    alignment == Alignment.bottomLeft)
-                ? const BorderSide(color: AppTheme.neonColor, width: 4)
+            left: isLeft
+                ? const BorderSide(color: AppTheme.neonColor, width: 3)
                 : BorderSide.none,
-            right:
-                (alignment == Alignment.topRight ||
-                    alignment == Alignment.bottomRight)
-                ? const BorderSide(color: AppTheme.neonColor, width: 4)
+            right: !isLeft
+                ? const BorderSide(color: AppTheme.neonColor, width: 3)
                 : BorderSide.none,
           ),
         ),
@@ -370,7 +381,6 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Column(
         children: [
-          // Drag handle indicator
           Container(
             width: 48,
             height: 4,
@@ -380,19 +390,13 @@ class _HomePageState extends State<HomePage> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-
-          // Header
           BlocBuilder<BillingBloc, BillingState>(
             builder: (context, state) {
               final totalItems = state.cartItems.fold<int>(
-                0,
-                (sum, i) => sum + i.quantity,
-              );
+                  0, (sum, i) => sum + i.quantity);
               return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 8,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -410,9 +414,7 @@ class _HomePageState extends State<HomePage> {
                         Text(
                           '$totalItems items selected',
                           style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.white70,
-                          ),
+                              fontSize: 12, color: Colors.white70),
                         ),
                       ],
                     ),
@@ -444,35 +446,22 @@ class _HomePageState extends State<HomePage> {
             },
           ),
           const Divider(height: 1),
-
-          // List View
           Expanded(
-            child: Stack(
-              children: [
-                BlocBuilder<BillingBloc, BillingState>(
-                  builder: (context, state) {
-                    if (state.cartItems.isEmpty) {
-                      return _buildEmptyCart();
-                    }
+            child: BlocBuilder<BillingBloc, BillingState>(
+              builder: (context, state) {
+                if (state.cartItems.isEmpty) return _buildEmptyCart();
 
-                    return ListView.separated(
-                      padding: const EdgeInsets.only(
-                        left: 15,
-                        right: 15,
-                        top: 16,
-                        bottom: 100,
-                      ),
-                      itemCount: state.cartItems.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = state.cartItems[index];
-                        return _buildCartItemCard(context, item);
-                      },
-                    );
+                return ListView.separated(
+                  padding: const EdgeInsets.only(
+                      left: 15, right: 15, top: 16, bottom: 100),
+                  itemCount: state.cartItems.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = state.cartItems[index];
+                    return _buildCartItemCard(context, item);
                   },
-                ),
-              ],
+                );
+              },
             ),
           ),
         ],
@@ -493,26 +482,22 @@ class _HomePageState extends State<HomePage> {
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: const Icon(
-              Icons.shopping_basket,
-              size: 40,
-              color: Colors.white54,
-            ),
+            child: const Icon(Icons.shopping_basket,
+                size: 40, color: Colors.white54),
           ),
           const SizedBox(height: 16),
           const Text(
             'List is empty',
             style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Colors.white,
-            ),
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.white),
           ),
           const SizedBox(height: 8),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Scanned items will appear here as you scan them with the camera above.',
+              'Scanned items will appear here as you scan them.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
@@ -526,8 +511,8 @@ class _HomePageState extends State<HomePage> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF161D33),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x337C3AED)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.cardBorderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.25),
@@ -538,8 +523,6 @@ class _HomePageState extends State<HomePage> {
       ),
       padding: const EdgeInsets.all(16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        spacing: 1,
         children: [
           Expanded(
             child: Column(
@@ -570,7 +553,7 @@ class _HomePageState extends State<HomePage> {
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF252F47),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
             padding: const EdgeInsets.all(4),
             child: Row(
@@ -581,7 +564,8 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () {
                     if (item.quantity > 1) {
                       context.read<BillingBloc>().add(
-                        UpdateQuantityEvent(item.product.id, item.quantity - 1),
+                        UpdateQuantityEvent(
+                            item.product.id, item.quantity - 1),
                       );
                     } else {
                       context.read<BillingBloc>().add(
@@ -602,7 +586,8 @@ class _HomePageState extends State<HomePage> {
                   icon: Icons.add,
                   onPressed: () {
                     context.read<BillingBloc>().add(
-                      UpdateQuantityEvent(item.product.id, item.quantity + 1),
+                      UpdateQuantityEvent(
+                          item.product.id, item.quantity + 1),
                     );
                   },
                 ),
@@ -627,7 +612,72 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
 
-  // A floating Details/Checkout Button at the very bottom
-  // Added a Stack wrapper below to overlay this button
+/// Compact pill button for the top bar (e.g. "Exit").
+class _TopBarButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _TopBarButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 16),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small circular icon button for the top bar (flash, camera toggle).
+class _TopBarIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _TopBarIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Icon(icon, color: Colors.white, size: 18),
+      ),
+    );
+  }
 }

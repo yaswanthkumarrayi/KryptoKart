@@ -4,10 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:vibration/vibration.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../upi/presentation/bloc/upi_bloc.dart';
-import '../../../upi/presentation/bloc/upi_event.dart';
+import '../../../billing/presentation/bloc/billing_bloc.dart';
 
-enum _QrType { upi, crypto, unknown }
+enum QrPayloadType { upi, crypto, barcode }
 
 class IntelligentQrScanPage extends StatefulWidget {
   const IntelligentQrScanPage({super.key});
@@ -54,86 +53,94 @@ class _IntelligentQrScanPageState extends State<IntelligentQrScanPage>
         Vibration.vibrate(duration: 80);
       }
 
-      final qrType = _resolveType(raw);
       if (!mounted) return;
-      switch (qrType) {
-        case _QrType.upi:
-          final upiData = _extractUpi(raw);
-          if (upiData != null) {
-            context.read<UpiBloc>().add(
-              UpiPayeeSetEvent(upiId: upiData.$1, payeeName: upiData.$2),
-            );
-            final amountPart = upiData.$3 > 0 ? '&amount=${upiData.$3}' : '';
-            context.go(
-              '/payment?type=upi&upiId=${Uri.encodeComponent(upiData.$1)}&payeeName=${Uri.encodeComponent(upiData.$2)}$amountPart',
-            );
-            return;
-          }
-          break;
-        case _QrType.crypto:
-          final wallet = _extractWallet(raw);
-          context.go('/payment?type=eth&wallet=${Uri.encodeComponent(wallet)}');
-          return;
-        case _QrType.unknown:
-          break;
-      }
 
-      _isHandled = false;
-      _showUnknownQrMessage(raw);
-      return;
+      final type = _classifyQr(raw);
+      switch (type) {
+        case QrPayloadType.upi:
+          _handleUpiQr(raw);
+          return;
+        case QrPayloadType.crypto:
+          _handleCryptoQr(raw);
+          return;
+        case QrPayloadType.barcode:
+          _handleBarcode(raw);
+          return;
+      }
     }
   }
 
-  _QrType _resolveType(String raw) {
+  QrPayloadType _classifyQr(String raw) {
     final lower = raw.toLowerCase();
-    final hasWallet = RegExp(r'0x[a-fA-F0-9]{40}').hasMatch(raw);
-    final hasUpiLike = RegExp(
+
+    if (lower.startsWith('upi://')) return QrPayloadType.upi;
+
+    final looksLikeUpiId = RegExp(
       r'^[a-zA-Z0-9.\-_]{2,}@[a-zA-Z]{2,}$',
     ).hasMatch(raw);
+    if (looksLikeUpiId) return QrPayloadType.upi;
 
-    if (lower.startsWith('upi://pay') || hasUpiLike) return _QrType.upi;
-    if (lower.startsWith('ethereum:') ||
-        lower.startsWith('eth:') ||
-        lower.startsWith('crypto:') ||
-        hasWallet) {
-      return _QrType.crypto;
+    if (lower.startsWith('0x') && RegExp(r'^0x[a-fA-F0-9]{40}$').hasMatch(raw)) {
+      return QrPayloadType.crypto;
     }
-    return _QrType.unknown;
+    if (lower.startsWith('ethereum:') || lower.startsWith('eth:')) {
+      return QrPayloadType.crypto;
+    }
+
+    return QrPayloadType.barcode;
   }
 
-  (String, String, double)? _extractUpi(String raw) {
-    if (raw.startsWith('upi://pay')) {
+  void _handleUpiQr(String raw) {
+    String upiId = '';
+    String payeeName = 'Merchant';
+    double amount = 0;
+
+    if (raw.startsWith('upi://')) {
       final uri = Uri.tryParse(raw);
-      if (uri == null) return null;
-      final upiId = uri.queryParameters['pa']?.trim() ?? '';
-      final payeeName = uri.queryParameters['pn']?.trim() ?? 'Merchant';
-      final amount = double.tryParse(uri.queryParameters['am'] ?? '') ?? 0;
-      if (upiId.isEmpty) return null;
-      return (upiId, payeeName, amount);
+      if (uri != null) {
+        upiId = uri.queryParameters['pa']?.trim() ?? '';
+        payeeName = uri.queryParameters['pn']?.trim() ?? 'Merchant';
+        amount = double.tryParse(uri.queryParameters['am'] ?? '') ?? 0;
+      }
+    } else {
+      upiId = raw;
     }
-    final basic = RegExp(r'^[a-zA-Z0-9.\-_]{2,}@[a-zA-Z]{2,}$');
-    if (basic.hasMatch(raw)) {
-      return (raw, 'Merchant', 0);
+
+    if (upiId.isEmpty) {
+      _resetAndShowError('Could not parse UPI data from QR');
+      return;
     }
-    return null;
+
+    final amountPart = amount > 0 ? '&amount=${amount.toStringAsFixed(2)}' : '';
+    context.go(
+      '/payment?type=upi'
+      '&upiId=${Uri.encodeComponent(upiId)}'
+      '&payeeName=${Uri.encodeComponent(payeeName)}'
+      '$amountPart',
+    );
   }
 
-  String _extractWallet(String raw) {
-    final match = RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(raw);
-    if (match != null) {
-      return match.group(0)!;
-    }
-    return raw.length > 24 ? '${raw.substring(0, 24)}...' : raw;
+  void _handleCryptoQr(String raw) {
+    final walletMatch = RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(raw);
+    final wallet = walletMatch?.group(0) ?? raw;
+
+    context.go('/payment?type=eth&wallet=${Uri.encodeComponent(wallet)}');
   }
 
-  void _showUnknownQrMessage(String raw) {
-    context.go('/payment?type=unknown&raw=${Uri.encodeComponent(raw)}');
+  void _handleBarcode(String raw) {
+    context.read<BillingBloc>().add(ScanBarcodeEvent(raw));
+    context.go('/shopping');
+  }
+
+  void _resetAndShowError(String message) {
+    _isHandled = false;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   void _toggleFlash() {
-    setState(() {
-      _flashOn = !_flashOn;
-    });
+    setState(() => _flashOn = !_flashOn);
     _controller.toggleTorch();
   }
 
@@ -224,7 +231,7 @@ class _IntelligentQrScanPageState extends State<IntelligentQrScanPage>
             right: 20,
             bottom: 34,
             child: Text(
-              'Scan any UPI or ETH QR code',
+              'Scan UPI QR, ETH wallet, or product barcode',
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,

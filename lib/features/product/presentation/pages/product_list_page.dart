@@ -55,8 +55,6 @@ class _ProductListPageState extends State<ProductListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = Colors.grey[100]!;
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -197,14 +195,14 @@ class _ProductListPageState extends State<ProductListPage> {
                     final product = filteredProducts[index];
                     return Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: borderColor),
-                        boxShadow: const [
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.cardBorderColor),
+                        boxShadow: [
                           BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
@@ -221,14 +219,15 @@ class _ProductListPageState extends State<ProductListPage> {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 16,
+                                    color: Colors.white,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '₹${product.price.toStringAsFixed(2)}',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.grey[600],
+                                    color: Colors.white70,
                                   ),
                                 ),
                               ],
@@ -240,9 +239,9 @@ class _ProductListPageState extends State<ProductListPage> {
                               Container(
                                 decoration: BoxDecoration(
                                   color: AppTheme.primaryColor.withValues(
-                                    alpha: 0.1,
+                                    alpha: 0.15,
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
                                   icon: const Icon(
@@ -265,13 +264,13 @@ class _ProductListPageState extends State<ProductListPage> {
                               const SizedBox(width: 8),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.red.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
                                   icon: const Icon(
                                     Icons.delete_outline_rounded,
-                                    color: Colors.red,
+                                    color: Colors.redAccent,
                                     size: 20,
                                   ),
                                   constraints: const BoxConstraints(),

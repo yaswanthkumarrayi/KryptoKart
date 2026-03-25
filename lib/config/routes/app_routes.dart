@@ -12,6 +12,11 @@ import '../../features/shop/presentation/pages/shop_details_page.dart';
 import '../../features/store/presentation/pages/store_selection_page.dart';
 import '../../features/payments/presentation/pages/unified_payment_page.dart';
 import '../../features/payments/presentation/pages/intelligent_qr_scan_page.dart';
+import '../../features/payments/presentation/screens/payment_mode_picker_screen.dart';
+import '../../features/payments/presentation/screens/upi_checkout_screen.dart';
+import '../../features/payments/presentation/screens/crypto_checkout_screen.dart';
+import '../../features/payments/presentation/screens/receipt_screen.dart';
+import '../../features/payments/domain/entities/payment_result.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -40,6 +45,45 @@ final router = GoRouter(
           initialWalletAddress: state.uri.queryParameters['wallet'],
           initialRawData: state.uri.queryParameters['raw'],
         );
+      },
+    ),
+    GoRoute(
+      path: '/payment/picker',
+      builder: (context, state) => const PaymentModePickerScreen(),
+    ),
+    GoRoute(
+      path: '/payment/upi',
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is Map<String, dynamic>) {
+          return UpiCheckoutScreen(
+            upiId: extra['upiId'] as String? ?? '',
+            amountInr: (extra['amountInr'] as num?)?.toDouble() ?? 0.0,
+          );
+        }
+        final amount = (extra is double) ? extra : 0.0;
+        return UpiCheckoutScreen(upiId: '', amountInr: amount);
+      },
+    ),
+    GoRoute(
+      path: '/payment/crypto',
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is Map<String, dynamic>) {
+          return CryptoCheckoutScreen(
+            ethAddress: extra['ethAddress'] as String? ?? '',
+            amountInr: (extra['amountInr'] as num?)?.toDouble() ?? 0.0,
+          );
+        }
+        final amount = (extra is double) ? extra : 0.0;
+        return CryptoCheckoutScreen(ethAddress: '', amountInr: amount);
+      },
+    ),
+    GoRoute(
+      path: '/payment/receipt',
+      builder: (context, state) {
+        final result = state.extra as PaymentResult;
+        return ReceiptScreen(result: result);
       },
     ),
     GoRoute(

@@ -10,6 +10,7 @@ import 'features/shop/presentation/bloc/shop_bloc.dart';
 import 'features/settings/presentation/bloc/printer_bloc.dart';
 import 'features/settings/presentation/bloc/printer_event.dart';
 import 'features/upi/presentation/bloc/upi_bloc.dart';
+import 'features/payments/presentation/bloc/payment_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,9 @@ class MyApp extends StatelessWidget {
           create: (context) => di.sl<PrinterBloc>()..add(InitPrinterEvent()),
         ),
         BlocProvider<UpiBloc>(create: (context) => di.sl<UpiBloc>()),
+        BlocProvider<PaymentBloc>(
+          create: (context) => di.sl<PaymentBloc>(),
+        ),
       ],
       child: MaterialApp.router(
         title: 'KryptoKart',
