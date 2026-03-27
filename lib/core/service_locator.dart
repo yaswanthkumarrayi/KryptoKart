@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import '../shared/services/api_service.dart';
 import '../shared/services/coingecko_service.dart';
 import '../shared/services/connectivity_service.dart';
+import '../shared/services/razorpay_payment_service.dart';
 import '../shared/services/wallet_service.dart';
 import '../features/auth/bloc/auth_bloc.dart';
 import '../features/dashboard/bloc/dashboard_bloc.dart';
@@ -15,9 +16,10 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<ApiService>(() => ApiService());
   sl.registerLazySingleton<CoinGeckoService>(() => CoinGeckoService());
   sl.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
+  sl.registerLazySingleton<RazorpayPaymentService>(() => RazorpayPaymentService());
   sl.registerLazySingleton<WalletService>(() => WalletService());
 
-  // Initialize wallet service (restore any saved connection)
+  // Initialize wallet service (restore any saved MetaMask connection)
   await sl<WalletService>().init();
 
   // Auth Bloc (singleton — persists across app)

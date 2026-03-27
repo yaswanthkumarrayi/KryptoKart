@@ -8,8 +8,6 @@ import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/widgets/kk_text_field.dart';
 import '../../../core/utils/validators.dart';
-import '../../../core/service_locator.dart';
-import '../../../shared/services/razorpay_payment_service.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -26,7 +24,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isTestingPayment = false;
 
   @override
   void dispose() {
@@ -43,41 +40,6 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         ),
       );
-    }
-  }
-
-  Future<void> _testRazorpay() async {
-    setState(() => _isTestingPayment = true);
-
-    try {
-      final razorpayService = sl<RazorpayPaymentService>();
-      final result = await razorpayService.startPayment(
-        amountPaise: 100, // ₹1 test payment
-        name: 'KryptoKart Test',
-        description: 'Test payment - ₹1',
-      );
-
-      if (mounted) {
-        setState(() => _isTestingPayment = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              result.success
-                  ? '✅ Payment Success! ID: ${result.paymentId}'
-                  : '❌ ${result.message}',
-            ),
-            backgroundColor: result.success ? AppColors.green : AppColors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isTestingPayment = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red),
-        );
-      }
     }
   }
 
