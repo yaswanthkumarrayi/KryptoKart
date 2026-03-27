@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:local_auth/local_auth.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../auth/bloc/auth_bloc.dart';
@@ -16,10 +17,39 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final LocalAuthentication _localAuth = LocalAuthentication();
+  bool _showBiometricButton = false;
+
   @override
   void initState() {
     super.initState();
     context.read<AuthBloc>().add(CheckAuthStatus());
+  }
+
+  /// Prompt fingerprint / face ID and navigate on success.
+  Future<void> _authenticateWithBiometric() async {
+    try {
+      final didAuth = await _localAuth.authenticate(
+        localizedReason: 'Verify your identity to continue',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
+      );
+
+      if (didAuth && mounted) {
+        context.read<AuthBloc>().add(BiometricLoginRequested());
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Biometric error: $e'),
+            backgroundColor: AppColors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -28,6 +58,10 @@ class _SplashScreenState extends State<SplashScreen> {
       listener: (context, state) {
         if (state is Authenticated) {
           context.go('/home');
+        } else if (state is BiometricAuthRequired) {
+          // Prompt biometric immediately
+          setState(() => _showBiometricButton = true);
+          _authenticateWithBiometric();
         } else if (state is Unauthenticated || state is AuthError) {
           context.go('/login');
         }
@@ -81,14 +115,51 @@ class _SplashScreenState extends State<SplashScreen> {
 
               const SizedBox(height: 48),
 
-              const SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
-                  color: AppColors.accent,
-                  strokeWidth: 2.5,
-                ),
-              ).animate().fadeIn(delay: 800.ms),
+              // Show fingerprint icon + retry button when biometric is required
+              if (_showBiometricButton) ...[
+                GestureDetector(
+                  onTap: _authenticateWithBiometric,
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                    ),
+                    child: const Icon(Icons.fingerprint, size: 40, color: AppColors.accent),
+                  ),
+                ).animate().fadeIn().scale(),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  'Tap to authenticate',
+                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                ).animate().fadeIn(delay: 200.ms),
+
+                const SizedBox(height: 24),
+
+                // Skip biometric → go to login
+                GestureDetector(
+                  onTap: () => context.go('/login'),
+                  child: Text(
+                    'Use password instead',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.accent,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ).animate().fadeIn(delay: 400.ms),
+              ] else
+                const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    color: AppColors.accent,
+                    strokeWidth: 2.5,
+                  ),
+                ).animate().fadeIn(delay: 800.ms),
             ],
           ),
         ),

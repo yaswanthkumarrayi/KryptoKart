@@ -78,6 +78,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _sw('Biometric Login', _bio, (v) {
                           setState(() => _bio = v);
                           _update('biometricEnabled', v);
+                          // Also save locally for splash screen biometric check
+                          AuthBloc.setBiometricEnabled(v);
                         }),
                         const Divider(color: AppColors.border),
                         _menu('Change PIN', Icons.lock_outline, () {}),

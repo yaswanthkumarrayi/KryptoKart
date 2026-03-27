@@ -2,7 +2,7 @@ class ApiConstants {
   ApiConstants._();
 
   // Backend base URL — change to your server IP for physical device
-  static const String backendBase = 'http://10.2.16.67:4000'; // Physical device
+  static const String backendBase = 'http://10.1.85.23:4000'; // Physical device
   // static const String backendBase = 'http://10.0.2.2:4000'; // Android emulator
   // static const String backendBase = 'http://localhost:4000'; // Web/Desktop
 
