@@ -1,172 +1,100 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/glass_card.dart';
-import '../../../core/widgets/kk_button.dart';
-import '../../../core/utils/currency_formatter.dart';
-import '../../../shared/models/product_model.dart';
-import '../../../shared/services/api_service.dart';
-import '../../../core/service_locator.dart';
-import '../../scanner/presentation/scanner_screen.dart';
+import 'store_session_screen.dart';
 
-class ShopScreen extends StatefulWidget {
-  final String? initialBarcode;
-  const ShopScreen({super.key, this.initialBarcode});
-  @override
-  State<ShopScreen> createState() => _ShopScreenState();
+/// Supermarket data model
+class SupermarketInfo {
+  final String id;
+  final String name;
+  final String address;
+  final String distance;
+  final String rating;
+  final String timing;
+  final IconData icon;
+  final Color accentColor;
+  final bool isOpen;
+
+  const SupermarketInfo({
+    required this.id,
+    required this.name,
+    required this.address,
+    required this.distance,
+    required this.rating,
+    required this.timing,
+    required this.icon,
+    required this.accentColor,
+    this.isOpen = true,
+  });
 }
 
-class _ShopScreenState extends State<ShopScreen> {
-  final _apiService = sl<ApiService>();
-  List<ProductModel> _products = [];
-  bool _isLoading = true;
+class ShopScreen extends StatelessWidget {
+  const ShopScreen({super.key});
 
-  @override
-  void initState() {
-    super.initState();
-    if (widget.initialBarcode != null && widget.initialBarcode!.isNotEmpty) {
-      _lookupBarcode(widget.initialBarcode!);
-    }
-    _loadProducts();
-  }
-
-  Future<void> _loadProducts() async {
-    try {
-      final data = await _apiService.getProducts();
-      setState(() {
-        _products = (data['products'] as List)
-            .map((j) => ProductModel.fromJson(j))
-            .toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _lookupBarcode(String barcode) async {
-    try {
-      final data = await _apiService.getProductByBarcode(barcode);
-      final product = ProductModel.fromJson(data['product']);
-      if (mounted) {
-        _showProductDetail(product);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Product not found for barcode: $barcode'),
-              backgroundColor: AppColors.yellow),
-        );
-      }
-    }
-  }
-
-  Future<void> _addToCart(ProductModel product) async {
-    try {
-      await _apiService.addToCart(product.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('${product.name} added to cart'),
-              backgroundColor: AppColors.green),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Error adding to cart'),
-              backgroundColor: AppColors.red),
-        );
-      }
-    }
-  }
-
-  void _openScanner() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const ScannerScreen(productMode: true),
-      ),
-    ).then((_) => _loadProducts());
-  }
-
-  void _showProductDetail(ProductModel product) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
-            Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                  color: AppColors.surface2,
-                  borderRadius: BorderRadius.circular(16)),
-              child: const Icon(Icons.inventory_2_outlined,
-                  color: AppColors.accent, size: 36),
-            ),
-            const SizedBox(height: 12),
-            Text(product.name, style: AppTextStyles.titleSmall),
-            const SizedBox(height: 4),
-            Text(CurrencyFormatter.formatInr(product.priceInr),
-                style: AppTextStyles.numberSmall.copyWith(color: AppColors.accent)),
-            const SizedBox(height: 8),
-            Text('Barcode: ${product.barcode}', style: AppTextStyles.caption),
-            if (product.category.isNotEmpty)
-              Text('Category: ${product.category}', style: AppTextStyles.caption),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: KkButton(
-                    label: 'Add to Cart',
-                    icon: Icons.add_shopping_cart,
-                    height: 48,
-                    onTap: () async {
-                      await _addToCart(product);
-                      if (mounted) Navigator.pop(ctx);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KkButton(
-                    label: 'Buy Now',
-                    outlined: true,
-                    icon: Icons.flash_on,
-                    height: 48,
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      context.push('/payment', extra: {
-                        'recipientName': 'KryptoMart Store',
-                        'recipientUpi': 'kryptomart@upi',
-                        'amount': product.priceInr.toString(),
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  static const _stores = [
+    SupermarketInfo(
+      id: 'reliance-smart',
+      name: 'Reliance Smart',
+      address: 'Ameerpet, Hyderabad',
+      distance: '0.5 km',
+      rating: '4.3',
+      timing: '7 AM – 11 PM',
+      icon: Icons.storefront_rounded,
+      accentColor: Color(0xFF0066FF),
+    ),
+    SupermarketInfo(
+      id: 'dmart',
+      name: 'DMart',
+      address: 'Kukatpally, Hyderabad',
+      distance: '1.2 km',
+      rating: '4.5',
+      timing: '9 AM – 10 PM',
+      icon: Icons.shopping_bag_rounded,
+      accentColor: Color(0xFF00C853),
+    ),
+    SupermarketInfo(
+      id: 'bigbasket',
+      name: 'BigBasket Now',
+      address: 'Madhapur, Hyderabad',
+      distance: '2.1 km',
+      rating: '4.1',
+      timing: '8 AM – 12 AM',
+      icon: Icons.local_grocery_store_rounded,
+      accentColor: Color(0xFFFF6D00),
+    ),
+    SupermarketInfo(
+      id: 'more-mega',
+      name: 'More Megastore',
+      address: 'Begumpet, Hyderabad',
+      distance: '3.0 km',
+      rating: '4.0',
+      timing: '8 AM – 10 PM',
+      icon: Icons.store_rounded,
+      accentColor: Color(0xFFAA00FF),
+    ),
+    SupermarketInfo(
+      id: 'spar',
+      name: 'SPAR Hypermarket',
+      address: 'Kondapur, Hyderabad',
+      distance: '3.5 km',
+      rating: '4.2',
+      timing: '9 AM – 11 PM',
+      icon: Icons.local_mall_rounded,
+      accentColor: Color(0xFFD50000),
+    ),
+    SupermarketInfo(
+      id: 'ratnadeep',
+      name: 'Ratnadeep Super Market',
+      address: 'Jubilee Hills, Hyderabad',
+      distance: '4.0 km',
+      rating: '4.4',
+      timing: '7 AM – 10 PM',
+      icon: Icons.storefront_outlined,
+      accentColor: Color(0xFFFFAB00),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -174,278 +102,197 @@ class _ShopScreenState extends State<ShopScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Shop & Go'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-            onPressed: _openScanner,
-            tooltip: 'Scan Barcode',
-          ),
-          IconButton(
-            icon: Stack(
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header banner
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: AppColors.accentGradient,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
               children: [
-                const Icon(Icons.shopping_cart_outlined),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Scan & Go',
+                          style: AppTextStyles.title
+                              .copyWith(color: AppColors.background)),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Walk in, scan items, pay & leave.\nNo queues, no cashier.',
+                        style: AppTextStyles.caption.copyWith(
+                            color: AppColors.background.withValues(alpha: 0.8)),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.background.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.qr_code_scanner_rounded,
+                      color: AppColors.background, size: 30),
+                ),
               ],
             ),
-            onPressed: () => context.push('/cart'),
+          ).animate().fadeIn().slideY(begin: -0.1),
+
+          // Section header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on_outlined,
+                    color: AppColors.accent, size: 18),
+                const SizedBox(width: 6),
+                Text('Nearby Stores',
+                    style: AppTextStyles.captionMedium
+                        .copyWith(color: AppColors.accent)),
+              ],
+            ),
+          ),
+
+          // Store list
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _stores.length,
+              itemBuilder: (context, index) {
+                final store = _stores[index];
+                return _StoreCard(
+                  store: store,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => StoreSessionScreen(store: store),
+                      ),
+                    );
+                  },
+                ).animate().fadeIn(delay: Duration(milliseconds: 80 * index));
+              },
+            ),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.accent))
-          : RefreshIndicator(
-              color: AppColors.accent,
-              onRefresh: () async => _loadProducts(),
+    );
+  }
+}
+
+class _StoreCard extends StatelessWidget {
+  final SupermarketInfo store;
+  final VoidCallback onTap;
+
+  const _StoreCard({required this.store, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            // Store icon
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: store.accentColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(store.icon, color: store.accentColor, size: 26),
+            ),
+            const SizedBox(width: 14),
+
+            // Store info
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Scan banner
-                  GestureDetector(
-                    onTap: _openScanner,
-                    child: Container(
-                      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: AppColors.accentGradient,
-                        borderRadius: BorderRadius.circular(16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(store.name,
+                            style: AppTextStyles.bodyMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.qr_code_scanner_rounded,
-                              color: AppColors.background, size: 32),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Scan to Add',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                        color: AppColors.background,
-                                        fontWeight: FontWeight.bold)),
-                                Text('Scan product barcode to find & add items',
-                                    style: AppTextStyles.caption.copyWith(
-                                        color: AppColors.background
-                                            .withValues(alpha: 0.8))),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.arrow_forward_ios,
-                              color: AppColors.background, size: 16),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.green.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.star_rounded,
+                                color: AppColors.green, size: 12),
+                            const SizedBox(width: 2),
+                            Text(store.rating,
+                                style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.green, fontSize: 10)),
+                          ],
+                        ),
                       ),
-                    ),
-                  ).animate().fadeIn().slideX(begin: -0.1),
-
-                  const SizedBox(height: 8),
-
-                  // Search bar
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Container(
-                      decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.border)),
-                      child: TextField(
-                        style: AppTextStyles.body,
-                        decoration: const InputDecoration(
-                            hintText: 'Search products...',
-                            prefixIcon: Icon(Icons.search,
-                                color: AppColors.textSecondary),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14)),
-                        onChanged: (q) async {
-                          final data = await _apiService.getProducts(search: q);
-                          setState(() {
-                            _products = (data['products'] as List)
-                                .map((j) => ProductModel.fromJson(j))
-                                .toList();
-                          });
-                        },
-                      ),
-                    ),
+                    ],
                   ),
-
-                  // Product grid
-                  Expanded(
-                    child: _products.isEmpty
-                        ? Center(
-                            child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.inventory_2_outlined,
-                                  size: 64,
-                                  color: AppColors.textSecondary
-                                      .withValues(alpha: 0.4)),
-                              const SizedBox(height: 16),
-                              Text('No products yet',
-                                  style: AppTextStyles.body.copyWith(
-                                      color: AppColors.textSecondary)),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  KkButton(
-                                      label: 'Scan',
-                                      width: 120,
-                                      height: 44,
-                                      icon: Icons.qr_code_scanner,
-                                      onTap: _openScanner),
-                                  const SizedBox(width: 12),
-                                  KkButton(
-                                      label: 'Add',
-                                      width: 120,
-                                      height: 44,
-                                      outlined: true,
-                                      icon: Icons.add,
-                                      onTap: _showAddDialog),
-                                ],
-                              ),
-                            ],
-                          ))
-                        : GridView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
-                                    childAspectRatio: 0.85),
-                            itemCount: _products.length,
-                            itemBuilder: (_, i) {
-                              final p = _products[i];
-                              return GlassCard(
-                                onTap: () => _showProductDetail(p),
-                                padding: const EdgeInsets.all(14),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                        height: 60,
-                                        width: double.infinity,
-                                        decoration: BoxDecoration(
-                                            color: AppColors.surface2,
-                                            borderRadius:
-                                                BorderRadius.circular(12)),
-                                        child: const Icon(
-                                            Icons.inventory_2_outlined,
-                                            color: AppColors.textSecondary)),
-                                    const SizedBox(height: 10),
-                                    Text(p.name,
-                                        style: AppTextStyles.bodyMedium,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis),
-                                    const Spacer(),
-                                    Row(children: [
-                                      Text(
-                                          CurrencyFormatter.formatInr(
-                                              p.priceInr),
-                                          style: AppTextStyles.bodyMedium
-                                              .copyWith(
-                                                  color: AppColors.accent)),
-                                      const Spacer(),
-                                      GestureDetector(
-                                        onTap: () => _addToCart(p),
-                                        child: Container(
-                                            width: 28,
-                                            height: 28,
-                                            decoration: BoxDecoration(
-                                                color: AppColors.accent
-                                                    .withValues(alpha: 0.15),
-                                                borderRadius:
-                                                    BorderRadius.circular(8)),
-                                            child: const Icon(Icons.add,
-                                                color: AppColors.accent,
-                                                size: 18)),
-                                      ),
-                                    ]),
-                                  ],
-                                ),
-                              )
-                                  .animate()
-                                  .fadeIn(
-                                      delay:
-                                          Duration(milliseconds: 80 * i));
-                            },
-                          ),
+                  const SizedBox(height: 4),
+                  Text(store.address, style: AppTextStyles.caption),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      _chipInfo(Icons.directions_walk, store.distance),
+                      const SizedBox(width: 10),
+                      _chipInfo(Icons.access_time, store.timing),
+                    ],
                   ),
                 ],
               ),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        backgroundColor: AppColors.accent,
-        child: const Icon(Icons.add, color: AppColors.background),
-      ),
-    );
-  }
 
-  void _showAddDialog() {
-    final nameC = TextEditingController();
-    final priceC = TextEditingController();
-    final barcodeC = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Add Product', style: AppTextStyles.titleSmall),
-            const SizedBox(height: 16),
-            TextField(
-                controller: nameC,
-                decoration: const InputDecoration(labelText: 'Product Name')),
-            const SizedBox(height: 12),
-            TextField(
-                controller: priceC,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Price (INR)')),
-            const SizedBox(height: 12),
-            TextField(
-                controller: barcodeC,
-                decoration: const InputDecoration(labelText: 'Barcode (optional)')),
-            const SizedBox(height: 20),
-            KkButton(
-              label: 'Add Product',
-              onTap: () async {
-                if (nameC.text.isEmpty) return;
-                try {
-                  await _apiService.createProduct({
-                    'name': nameC.text,
-                    'priceInr': double.tryParse(priceC.text) ?? 0,
-                    'barcode': barcodeC.text.isNotEmpty
-                        ? barcodeC.text
-                        : DateTime.now()
-                            .millisecondsSinceEpoch
-                            .toString()
-                            .substring(0, 10),
-                  });
-                  if (mounted) {
-                    Navigator.pop(ctx);
-                    _loadProducts();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('Error: $e'),
-                          backgroundColor: AppColors.red),
-                    );
-                  }
-                }
-              },
-              height: 48,
+            const SizedBox(width: 8),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.arrow_forward_ios_rounded,
+                  color: AppColors.accent, size: 14),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _chipInfo(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 11, color: AppColors.textSecondary),
+        const SizedBox(width: 3),
+        Text(text,
+            style: AppTextStyles.caption.copyWith(fontSize: 10)),
+      ],
     );
   }
 }

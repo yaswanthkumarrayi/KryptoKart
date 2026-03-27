@@ -118,10 +118,7 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/shop',
-        builder: (context, state) {
-          final data = state.extra as Map<String, dynamic>?;
-          return ShopScreen(initialBarcode: data?['barcode']);
-        },
+        builder: (context, state) => const ShopScreen(),
       ),
       GoRoute(
         path: '/cart',
