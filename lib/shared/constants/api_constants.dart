@@ -42,6 +42,12 @@ class ApiConstants {
   // Settings
   static const String settings = '$backendBase/api/settings';
 
+  // Wallet
+  static const String walletAddress = '$backendBase/api/wallet/address';
+  static const String walletSave = '$backendBase/api/wallet/save';
+  static String walletUpiMapping(String address) =>
+      '$backendBase/api/wallet/upi-mapping/$address';
+
   // CoinGecko
   static const String coinGeckoBase = 'https://api.coingecko.com/api/v3';
 

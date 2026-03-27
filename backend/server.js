@@ -14,6 +14,7 @@ const cartRoutes = require('./routes/cart');
 const watchlistRoutes = require('./routes/watchlist');
 const paymentRoutes = require('./routes/payments');
 const settingsRoutes = require('./routes/settings');
+const walletRoutes = require('./routes/wallet');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/wallet', walletRoutes);
 
 // 404 handler
 app.use((_req, res) => {

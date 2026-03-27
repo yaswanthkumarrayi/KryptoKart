@@ -35,7 +35,11 @@ class DashboardScreen extends StatelessWidget {
               const Icon(Icons.notifications_outlined, color: Colors.white),
               Positioned(right: 0, top: 0, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.red, shape: BoxShape.circle))),
             ]),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No new notifications'), duration: Duration(seconds: 1)),
+              );
+            },
           ),
         ],
       ),

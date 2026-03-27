@@ -12,6 +12,7 @@ import '../../../core/utils/qr_classifier.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/models/product_model.dart';
 import '../../../shared/services/api_service.dart';
+import '../../../shared/services/wallet_service.dart';
 import '../../../core/service_locator.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -30,6 +31,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   bool _torchOn = false;
   bool _cameraFailed = false;
   final _apiService = sl<ApiService>();
+  final _walletService = sl<WalletService>();
 
   @override
   void initState() {
@@ -96,11 +98,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
     switch (type) {
       case QrType.upi:
         final parsed = QrClassifier.parseUpi(rawValue);
-        context.push('/payment', extra: {
-          'recipientName': parsed['pn'] ?? 'Unknown',
-          'recipientUpi': parsed['pa'] ?? '',
-          'amount': parsed['am'] ?? '',
-        });
+        // Show UPI/Crypto payment choice dialog instead of navigating directly
+        _showPaymentChoiceDialog(
+          recipientName: parsed['pn'] ?? 'Unknown',
+          recipientUpi: parsed['pa'] ?? '',
+          amount: parsed['am'] ?? '',
+        );
         break;
       case QrType.cryptoWallet:
         final address = QrClassifier.parseWalletAddress(rawValue);
@@ -117,6 +120,157 @@ class _ScannerScreenState extends State<ScannerScreen> {
         _lookupProduct(rawValue);
         break;
     }
+  }
+
+  /// Shows a bottom sheet with UPI / Crypto payment choice after scanning a UPI QR.
+  /// The Crypto option uses the user's hardcoded wallet address.
+  void _showPaymentChoiceDialog({
+    required String recipientName,
+    required String recipientUpi,
+    required String amount,
+  }) {
+    final hasWallet = _walletService.isConnected;
+    final walletAddress = _walletService.connectedAddress;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 20),
+
+            // Success icon
+            Container(
+              width: 70, height: 70,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.accent, size: 36),
+            ),
+            const SizedBox(height: 14),
+            Text('QR Scanned!', style: AppTextStyles.titleSmall),
+            const SizedBox(height: 6),
+            Text(recipientName, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent)),
+            if (amount.isNotEmpty)
+              Text('Amount: ₹$amount', style: AppTextStyles.caption),
+            const SizedBox(height: 24),
+
+            Text('Choose payment method', style: AppTextStyles.bodyMedium),
+            const SizedBox(height: 16),
+
+            // UPI Option
+            _paymentOptionTile(
+              icon: Icons.send_rounded,
+              title: 'Pay via UPI',
+              subtitle: 'Razorpay secure payment',
+              color: AppColors.accentBlue,
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/payment', extra: {
+                  'recipientName': recipientName,
+                  'recipientUpi': recipientUpi,
+                  'amount': amount,
+                });
+              },
+            ),
+
+            const SizedBox(height: 10),
+
+            // Crypto Option
+            _paymentOptionTile(
+              icon: Icons.currency_bitcoin,
+              title: 'Pay via Crypto',
+              subtitle: hasWallet
+                  ? 'Using ${walletAddress!.substring(0, 6)}...${walletAddress!.substring(walletAddress!.length - 4)}'
+                  : 'Connect a wallet first',
+              color: AppColors.accent,
+              enabled: hasWallet,
+              onTap: hasWallet
+                  ? () {
+                      Navigator.pop(ctx);
+                      context.push('/payment', extra: {
+                        'recipientName': recipientName,
+                        'recipientWallet': walletAddress,
+                        'amount': amount,
+                      });
+                    }
+                  : null,
+            ),
+
+            const SizedBox(height: 16),
+
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _resetScanner();
+              },
+              child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(() {
+      if (mounted) _resetScanner();
+    });
+  }
+
+  /// A styled payment option tile for the choice dialog.
+  Widget _paymentOptionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    bool enabled = true,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: enabled ? AppColors.surface : AppColors.surface2.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: enabled ? color.withValues(alpha: 0.4) : AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: enabled ? 0.15 : 0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: enabled ? color : AppColors.textSecondary, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppTextStyles.bodyMedium.copyWith(
+                    color: enabled ? AppColors.textPrimary : AppColors.textSecondary,
+                  )),
+                  Text(subtitle, style: AppTextStyles.caption.copyWith(fontSize: 11)),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, size: 14,
+                color: enabled ? color : AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _lookupProduct(String barcode) async {
@@ -554,7 +708,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     _bottomAction(
                         icon: Icons.image_outlined,
                         label: 'Upload QR',
-                        onTap: () {}),
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Gallery QR import coming soon'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }),
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
