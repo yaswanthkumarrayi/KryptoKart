@@ -43,3 +43,8 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Keep Razorpay Android SDK aligned with Standard Checkout docs.
+    implementation("com.razorpay:checkout:1.6.40")
+}
