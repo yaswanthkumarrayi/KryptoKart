@@ -1,60 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'config/routes/app_routes.dart';
-import 'config/app_config.dart';
-import 'core/data/hive_database.dart';
-import 'core/service_locator.dart' as di;
+import 'core/service_locator.dart';
 import 'core/theme/app_theme.dart';
-import 'features/billing/presentation/bloc/billing_bloc.dart';
-import 'features/product/presentation/bloc/product_bloc.dart';
-import 'features/shop/presentation/bloc/shop_bloc.dart';
-import 'features/settings/presentation/bloc/printer_bloc.dart';
-import 'features/settings/presentation/bloc/printer_event.dart';
-import 'features/upi/presentation/bloc/upi_bloc.dart';
-import 'features/payments/presentation/bloc/payment_bloc.dart';
+import 'features/auth/bloc/auth_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Print configuration for debugging (remove in production)
-  AppConfig.printConfig();
-  
-  await HiveDatabase.init();
-  await di.init();
-  runApp(const MyApp());
+  await setupServiceLocator();
+  runApp(const KryptoKartApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class KryptoKartApp extends StatelessWidget {
+  const KryptoKartApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<ProductBloc>(
-          create: (context) => di.sl<ProductBloc>()..add(LoadProducts()),
-        ),
-        BlocProvider<ShopBloc>(
-          create: (context) => di.sl<ShopBloc>()..add(LoadShopEvent()),
-        ),
-        BlocProvider<BillingBloc>(
-          create: (context) => BillingBloc(getProductByBarcodeUseCase: di.sl()),
-        ),
-        BlocProvider<PrinterBloc>(
-          create: (context) => di.sl<PrinterBloc>()..add(InitPrinterEvent()),
-        ),
-        BlocProvider<UpiBloc>(create: (context) => di.sl<UpiBloc>()),
-        BlocProvider<PaymentBloc>(
-          create: (context) => di.sl<PaymentBloc>(),
+        BlocProvider<AuthBloc>(
+          create: (_) => sl<AuthBloc>(),
         ),
       ],
       child: MaterialApp.router(
         title: 'KryptoKart',
+        debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.dark,
-        routerConfig: router,
-        debugShowCheckedModeBanner: false,
+        routerConfig: AppRoutes.router,
       ),
     );
   }

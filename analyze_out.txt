@@ -1,0 +1,24 @@
+Analyzing billing_fixed...                                      
+
+warning - The value of the field '_inrCompact' isn't used - lib\core\utils\currency_formatter.dart:12:16 - unused_field
+   info - Use 'const' with the constructor to improve performance - lib\features\auth\presentation\login_screen.dart:167:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\auth\presentation\login_screen.dart:167:39 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\auth\presentation\login_screen.dart:172:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\auth\presentation\login_screen.dart:172:39 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\dashboard\presentation\dashboard_screen.dart:27:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\markets\presentation\markets_screen.dart:24:13 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\features\profile\presentation\profile_screen.dart:45:25 - use_build_context_synchronously
+warning - The left operand can't be null, so the right operand is never executed - lib\features\scanner\presentation\scanner_screen.dart:61:60 - dead_null_aware_expression
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\scanner\presentation\scanner_screen.dart:195:41 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\scanner\presentation\scanner_screen.dart:318:41 - use_build_context_synchronously
+   info - Use 'const' with the constructor to improve performance - lib\features\settings\presentation\settings_screen.dart:299:42 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\settings\presentation\settings_screen.dart:299:64 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\settings\presentation\settings_screen.dart:397:35 - use_build_context_synchronously
+   info - Statements in an if should be enclosed in a block - lib\features\shop\presentation\cart_screen.dart:58:77 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\shop\presentation\cart_screen.dart:58:130 - curly_braces_in_flow_control_structures
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\shop\presentation\shop_screen.dart:142:50 - use_build_context_synchronously
+   info - Use 'const' with the constructor to improve performance - lib\features\shop\presentation\shop_screen.dart:184:19 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\features\shop\presentation\shop_screen.dart:185:25 - prefer_const_literals_to_create_immutables
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\shop\presentation\shop_screen.dart:431:35 - use_build_context_synchronously
+   info - Don't invoke 'print' in production code - lib\shared\services\api_service.dart:34:24 - avoid_print
+

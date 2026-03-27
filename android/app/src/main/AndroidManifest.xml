@@ -13,7 +13,8 @@
     <application
         android:label="KryptoKart"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -52,5 +53,24 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- MetaMask deep link -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="metamask"/>
+        </intent>
+        <!-- Phantom deep link -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="phantom"/>
+        </intent>
+        <!-- Web browser for Play Store links -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <!-- MetaMask package -->
+        <package android:name="io.metamask"/>
+        <!-- Phantom package -->
+        <package android:name="app.phantom"/>
     </queries>
 </manifest>
