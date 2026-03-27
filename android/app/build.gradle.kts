@@ -21,10 +21,11 @@ android {
 
     defaultConfig {
         applicationId = "com.example.billing_fixed"
-        minSdk = flutter.minSdkVersion
+        minSdk = 24
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
     }
 
     buildTypes {

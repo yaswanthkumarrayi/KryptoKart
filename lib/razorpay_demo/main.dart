@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'payment_service.dart';
 
 void main() {
-  runApp(const RazorpayDemoApp());
+  runApp(const RazorpayDemoApp());//test
 }
 
 class RazorpayDemoApp extends StatelessWidget {
@@ -27,7 +27,9 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final RazorpayPaymentService _service = RazorpayPaymentService();
-  final TextEditingController _amountController = TextEditingController(text: '100');
+  final TextEditingController _amountController = TextEditingController(
+    text: '100',
+  );
   bool _loading = false;
 
   @override
@@ -41,7 +43,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final rupees = int.tryParse(_amountController.text.trim());
     if (rupees == null || rupees <= 0) {
       _openResult(
-        const PaymentStatus(success: false, message: 'Enter a valid amount in rupees.'),
+        const PaymentStatus(
+          success: false,
+          message: 'Enter a valid amount in rupees.',
+        ),
       );
       return;
     }
@@ -60,11 +65,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _openResult(PaymentStatus result) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ResultScreen(result: result),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ResultScreen(result: result)));
   }
 
   @override
@@ -112,7 +115,9 @@ class ResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final success = result.success;
     return Scaffold(
-      appBar: AppBar(title: Text(success ? 'Payment Success' : 'Payment Failed')),
+      appBar: AppBar(
+        title: Text(success ? 'Payment Success' : 'Payment Failed'),
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -136,7 +141,8 @@ class ResultScreen extends StatelessWidget {
               ],
               const SizedBox(height: 20),
               FilledButton(
-                onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                onPressed: () =>
+                    Navigator.of(context).popUntil((route) => route.isFirst),
                 child: const Text('Back to Checkout'),
               ),
             ],

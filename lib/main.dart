@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'config/routes/app_routes.dart';
+import 'config/app_config.dart';
 import 'core/data/hive_database.dart';
 import 'core/service_locator.dart' as di;
 import 'core/theme/app_theme.dart';
@@ -14,6 +15,10 @@ import 'features/payments/presentation/bloc/payment_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Print configuration for debugging (remove in production)
+  AppConfig.printConfig();
+  
   await HiveDatabase.init();
   await di.init();
   runApp(const MyApp());
