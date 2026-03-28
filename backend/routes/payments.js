@@ -5,14 +5,29 @@ const Razorpay = require('razorpay');
 
 const router = express.Router();
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Lazily create the Razorpay client so a missing key doesn't crash the server
+// at startup — it will fail gracefully with a 503 when actually called.
+let _razorpay = null;
+function getRazorpay() {
+  if (!_razorpay) {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keyId || keyId.startsWith('REPLACE') || !keySecret || keySecret.startsWith('REPLACE')) {
+      return null; // Not configured yet
+    }
+    _razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+  }
+  return _razorpay;
+}
 
 // POST /api/payments/create-order
 router.post('/create-order', auth, async (req, res) => {
   try {
+    const razorpay = getRazorpay();
+    if (!razorpay) {
+      return res.status(503).json({ error: 'Payment gateway not configured. Add RAZORPAY keys to .env' });
+    }
+
     const amount = Number(req.body?.amount);
     const currency = (req.body?.currency || 'INR').toString().trim().toUpperCase();
 

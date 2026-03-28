@@ -7,32 +7,38 @@ class ApiService {
   String? _authToken;
 
   ApiService() {
-    _dio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {'Content-Type': 'application/json'},
-    ));
+    _dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
 
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        if (_authToken != null) {
-          options.headers['Authorization'] = 'Bearer $_authToken';
-        }
-        return handler.next(options);
-      },
-      onError: (error, handler) {
-        if (error.response?.statusCode == 401) {
-          // Token expired — could auto-logout here
-        }
-        return handler.next(error);
-      },
-    ));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (_authToken != null) {
+            options.headers['Authorization'] = 'Bearer $_authToken';
+          }
+          return handler.next(options);
+        },
+        onError: (error, handler) {
+          if (error.response?.statusCode == 401) {
+            // Token expired — could auto-logout here
+          }
+          return handler.next(error);
+        },
+      ),
+    );
 
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      logPrint: (o) => print('[API] $o'),
-    ));
+    _dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        logPrint: (o) => print('[API] $o'),
+      ),
+    );
   }
 
   void setToken(String token) {
@@ -87,12 +93,15 @@ class ApiService {
     required String password,
     String? upiId,
   }) async {
-    final response = await post(ApiConstants.register, data: {
-      'name': name,
-      'phone': phone,
-      'password': password,
-      'upiId': upiId,
-    });
+    final response = await post(
+      ApiConstants.register,
+      data: {
+        'name': name,
+        'phone': phone,
+        'password': password,
+        'upiId': upiId,
+      },
+    );
     return response.data;
   }
 
@@ -100,10 +109,10 @@ class ApiService {
     required String phone,
     required String password,
   }) async {
-    final response = await post(ApiConstants.login, data: {
-      'phone': phone,
-      'password': password,
-    });
+    final response = await post(
+      ApiConstants.login,
+      data: {'phone': phone, 'password': password},
+    );
     return response.data;
   }
 
@@ -124,14 +133,19 @@ class ApiService {
   }
 
   // Transaction methods
-  Future<Map<String, dynamic>> getTransactions({String? type, int limit = 50}) async {
+  Future<Map<String, dynamic>> getTransactions({
+    String? type,
+    int limit = 50,
+  }) async {
     final params = <String, dynamic>{'limit': limit};
     if (type != null && type != 'all') params['type'] = type;
     final response = await get(ApiConstants.transactions, queryParams: params);
     return response.data;
   }
 
-  Future<Map<String, dynamic>> createTransaction(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createTransaction(
+    Map<String, dynamic> data,
+  ) async {
     final response = await post(ApiConstants.transactions, data: data);
     return response.data;
   }
@@ -170,26 +184,33 @@ class ApiService {
     return response.data;
   }
 
-  Future<Map<String, dynamic>> addToCart(String productId, {int quantity = 1}) async {
-    final response = await post(ApiConstants.cartAdd, data: {
-      'productId': productId,
-      'quantity': quantity,
-    });
+  Future<Map<String, dynamic>> addToCart(
+    String productId, {
+    int quantity = 1,
+  }) async {
+    final response = await post(
+      ApiConstants.cartAdd,
+      data: {'productId': productId, 'quantity': quantity},
+    );
     return response.data;
   }
 
-  Future<Map<String, dynamic>> updateCartItem(String productId, int quantity) async {
-    final response = await post(ApiConstants.cartUpdate, data: {
-      'productId': productId,
-      'quantity': quantity,
-    });
+  Future<Map<String, dynamic>> updateCartItem(
+    String productId,
+    int quantity,
+  ) async {
+    final response = await post(
+      ApiConstants.cartUpdate,
+      data: {'productId': productId, 'quantity': quantity},
+    );
     return response.data;
   }
 
   Future<Map<String, dynamic>> removeFromCart(String productId) async {
-    final response = await post(ApiConstants.cartRemove, data: {
-      'productId': productId,
-    });
+    final response = await post(
+      ApiConstants.cartRemove,
+      data: {'productId': productId},
+    );
     return response.data;
   }
 
@@ -204,18 +225,19 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> toggleWatchlist(String coinId) async {
-    final response = await post(ApiConstants.watchlistToggle, data: {
-      'coinId': coinId,
-    });
+    final response = await post(
+      ApiConstants.watchlistToggle,
+      data: {'coinId': coinId},
+    );
     return response.data;
   }
 
   // Payment methods
   Future<Map<String, dynamic>> createPaymentOrder(int amountPaise) async {
-    final response = await post(ApiConstants.createOrder, data: {
-      'amount': amountPaise,
-      'currency': 'INR',
-    });
+    final response = await post(
+      ApiConstants.createOrder,
+      data: {'amount': amountPaise, 'currency': 'INR'},
+    );
     return response.data;
   }
 
@@ -224,11 +246,14 @@ class ApiService {
     required String paymentId,
     required String signature,
   }) async {
-    final response = await post(ApiConstants.verifyPayment, data: {
-      'razorpay_order_id': orderId,
-      'razorpay_payment_id': paymentId,
-      'razorpay_signature': signature,
-    });
+    final response = await post(
+      ApiConstants.verifyPayment,
+      data: {
+        'razorpay_order_id': orderId,
+        'razorpay_payment_id': paymentId,
+        'razorpay_signature': signature,
+      },
+    );
     return response.data;
   }
 
@@ -247,9 +272,10 @@ class ApiService {
 
   /// Update the user's wallet address on the backend.
   Future<Map<String, dynamic>> updateWallet(String walletAddress) async {
-    final response = await put(ApiConstants.walletSave, data: {
-      'walletAddress': walletAddress,
-    });
+    final response = await put(
+      ApiConstants.walletSave,
+      data: {'walletAddress': walletAddress},
+    );
     return response.data;
   }
 
