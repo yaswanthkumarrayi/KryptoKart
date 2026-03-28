@@ -4,6 +4,7 @@ import '../shared/services/coingecko_service.dart';
 import '../shared/services/connectivity_service.dart';
 import '../shared/services/razorpay_payment_service.dart';
 import '../shared/services/wallet_service.dart';
+import '../shared/services/wishlist_service.dart';
 import '../features/auth/bloc/auth_bloc.dart';
 import '../features/dashboard/bloc/dashboard_bloc.dart';
 import '../features/markets/bloc/markets_bloc.dart';
@@ -16,11 +17,16 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<ApiService>(() => ApiService());
   sl.registerLazySingleton<CoinGeckoService>(() => CoinGeckoService());
   sl.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
-  sl.registerLazySingleton<RazorpayPaymentService>(() => RazorpayPaymentService());
+  sl.registerLazySingleton<RazorpayPaymentService>(
+    () => RazorpayPaymentService(),
+  );
   sl.registerLazySingleton<WalletService>(() => WalletService());
+  sl.registerLazySingleton<WishlistService>(() => WishlistService());
 
   // Initialize wallet service (restore any saved MetaMask connection)
   await sl<WalletService>().init();
+  // Initialize wishlist service
+  await sl<WishlistService>().initialize();
 
   // Auth Bloc (singleton — persists across app)
   sl.registerLazySingleton<AuthBloc>(() => AuthBloc(sl<ApiService>()));
@@ -30,10 +36,13 @@ Future<void> setupServiceLocator() async {
     () => DashboardBloc(sl<ApiService>(), sl<CoinGeckoService>()),
   );
   sl.registerFactory<MarketsBloc>(
-    () => MarketsBloc(sl<CoinGeckoService>(), sl<ApiService>()),
+    () => MarketsBloc(
+      sl<CoinGeckoService>(),
+      sl<ApiService>(),
+      sl<WishlistService>(),
+    ),
   );
   sl.registerFactory<TransactionsBloc>(
     () => TransactionsBloc(sl<ApiService>()),
   );
 }
-
