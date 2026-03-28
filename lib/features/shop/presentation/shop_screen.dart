@@ -131,15 +131,10 @@ class ShopScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.background.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.qr_code_scanner_rounded,
-                      color: AppColors.background, size: 30),
+                const Icon(
+                  Icons.qr_code_scanner_rounded,
+                  color: AppColors.background,
+                  size: 36,
                 ),
               ],
             ),
@@ -206,15 +201,10 @@ class _StoreCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Store icon
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: store.accentColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(store.icon, color: store.accentColor, size: 26),
+            // Store icon (no tinted glass backing)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(store.icon, color: store.accentColor, size: 28),
             ),
             const SizedBox(width: 14),
 
@@ -231,24 +221,16 @@ class _StoreCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.green.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.star_rounded,
-                                color: AppColors.green, size: 12),
-                            const SizedBox(width: 2),
-                            Text(store.rating,
-                                style: AppTextStyles.caption.copyWith(
-                                    color: AppColors.green, fontSize: 10)),
-                          ],
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star_rounded,
+                              color: AppColors.green, size: 14),
+                          const SizedBox(width: 4),
+                          Text(store.rating,
+                              style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.green, fontSize: 10)),
+                        ],
                       ),
                     ],
                   ),
@@ -266,17 +248,9 @@ class _StoreCard extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(width: 8),
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.arrow_forward_ios_rounded,
-                  color: AppColors.accent, size: 14),
-            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: AppColors.accent, size: 14),
           ],
         ),
       ),
