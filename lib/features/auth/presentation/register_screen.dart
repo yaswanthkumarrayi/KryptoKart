@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/widgets/kk_text_field.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/service_locator.dart';
+import '../../../shared/services/wallet_service.dart';
+import '../../../shared/services/api_service.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -28,7 +30,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _agreedToTerms = false;
   String? _connectedWallet;
+  String? _walletAddress;
   bool _isConnectingWallet = false;
+
+  // Services
+  final _walletService = sl<WalletService>();
+  final _apiService = sl<ApiService>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Restore any previously connected wallet
+    if (_walletService.isConnected) {
+      _connectedWallet = _walletService.walletName;
+      _walletAddress = _walletService.connectedAddress;
+    }
+  }
 
   @override
   void dispose() {
@@ -56,107 +73,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  /// Connect MetaMask wallet — fast, no browser, instant authentication.
   Future<void> _connectMetaMask() async {
     setState(() => _isConnectingWallet = true);
 
-    // Try to open MetaMask app via deep link
-    final metamaskUri = Uri.parse('metamask://');
-    final metamaskDappUri = Uri.parse('https://metamask.app.link/dapp/kryptokart.app');
-
     try {
-      if (await canLaunchUrl(metamaskUri)) {
-        await launchUrl(metamaskUri, mode: LaunchMode.externalApplication);
-        // After returning from MetaMask, show connected state
-        if (mounted) {
-          setState(() {
-            _connectedWallet = 'MetaMask';
-            _isConnectingWallet = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('MetaMask wallet connected!'), backgroundColor: AppColors.green),
-          );
+      final address = await _walletService.connectMetaMask();
+
+      if (mounted) {
+        setState(() {
+          _connectedWallet = 'MetaMask';
+          _walletAddress = address;
+          _isConnectingWallet = false;
+        });
+
+        // Save wallet address to backend if user is already authenticated
+        if (_apiService.isAuthenticated) {
+          try {
+            await _apiService.updateWallet(address);
+          } catch (_) {
+            // Non-critical — will be saved on next profile update
+          }
         }
-      } else if (await canLaunchUrl(metamaskDappUri)) {
-        await launchUrl(metamaskDappUri, mode: LaunchMode.externalApplication);
-        if (mounted) {
-          setState(() {
-            _connectedWallet = 'MetaMask';
-            _isConnectingWallet = false;
-          });
-        }
-      } else {
-        // MetaMask not installed — offer to install
-        if (mounted) {
-          _showWalletInstallDialog('MetaMask', 'https://play.google.com/store/apps/details?id=io.metamask');
-        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('MetaMask connected: ${address.substring(0, 6)}...${address.substring(address.length - 4)}'),
+            backgroundColor: AppColors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isConnectingWallet = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open MetaMask: $e'), backgroundColor: AppColors.red),
+          SnackBar(content: Text('Connection failed: $e'), backgroundColor: AppColors.red),
         );
       }
     }
   }
 
-  Future<void> _connectPhantom() async {
-    setState(() => _isConnectingWallet = true);
-    final phantomUri = Uri.parse('phantom://');
-    final phantomStoreUri = Uri.parse('https://play.google.com/store/apps/details?id=app.phantom');
-
-    try {
-      if (await canLaunchUrl(phantomUri)) {
-        await launchUrl(phantomUri, mode: LaunchMode.externalApplication);
-        if (mounted) {
-          setState(() {
-            _connectedWallet = 'Phantom';
-            _isConnectingWallet = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Phantom wallet connected!'), backgroundColor: AppColors.green),
-          );
-        }
-      } else {
-        if (mounted) {
-          _showWalletInstallDialog('Phantom', phantomStoreUri.toString());
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isConnectingWallet = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open Phantom: $e'), backgroundColor: AppColors.red),
-        );
-      }
-    }
-  }
-
-  void _showWalletInstallDialog(String walletName, String storeUrl) {
-    setState(() => _isConnectingWallet = false);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('$walletName Not Installed', style: AppTextStyles.titleSmall),
-        content: Text(
-          '$walletName is not installed on this device. Would you like to install it from the Play Store?',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await launchUrl(Uri.parse(storeUrl), mode: LaunchMode.externalApplication);
-            },
-            child: Text('Install', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent)),
-          ),
-        ],
+  /// Phantom wallet not supported yet.
+  void _connectPhantom() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Phantom wallet coming soon. Use MetaMask.'),
+        duration: Duration(seconds: 2),
       ),
     );
   }
@@ -228,7 +190,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Connect Wallet card - REAL
+                  // Connect Wallet card — instant, no browser
                   GlassCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,6 +218,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ],
                           ],
                         ),
+                        // Show wallet address when connected
+                        if (_walletAddress != null) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface2,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.key, color: AppColors.accent, size: 14),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${_walletAddress!.substring(0, 6)}...${_walletAddress!.substring(_walletAddress!.length - 4)}',
+                                    style: AppTextStyles.captionMedium.copyWith(color: AppColors.accent, fontFamily: 'monospace'),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () async {
+                                    await _walletService.disconnect();
+                                    setState(() {
+                                      _connectedWallet = null;
+                                      _walletAddress = null;
+                                    });
+                                  },
+                                  child: const Icon(Icons.close, color: AppColors.textSecondary, size: 16),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,

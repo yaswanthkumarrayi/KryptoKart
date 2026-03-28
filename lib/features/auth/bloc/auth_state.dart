@@ -20,6 +20,13 @@ class Authenticated extends AuthState {
 
 class Unauthenticated extends AuthState {}
 
+class BiometricAuthRequired extends AuthState {
+  final UserModel user;
+  const BiometricAuthRequired(this.user);
+  @override
+  List<Object> get props => [user];
+}
+
 class AuthError extends AuthState {
   final String message;
   const AuthError(this.message);

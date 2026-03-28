@@ -20,6 +20,7 @@ import '../../features/billing/presentation/checkout_screen.dart';
 import '../../features/transactions/presentation/transactions_screen.dart';
 import '../../features/transactions/presentation/transaction_detail_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/profile/presentation/wishlist_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../shared/models/transaction_model.dart';
 import '../../shared/widgets/bottom_nav_bar.dart';
@@ -33,24 +34,15 @@ class AppRoutes {
     initialLocation: '/',
     routes: [
       // Splash
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const SplashScreen(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
 
       // Auth routes
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
-      GoRoute(
-        path: '/kyc',
-        builder: (context, state) => const KycScreen(),
-      ),
+      GoRoute(path: '/kyc', builder: (context, state) => const KycScreen()),
 
       // Shell route for bottom nav
       ShellRoute(
@@ -113,17 +105,16 @@ class AppRoutes {
       GoRoute(
         path: '/coin/:id',
         builder: (context, state) {
-          return CoinDetailScreen(coinId: state.pathParameters['id'] ?? 'bitcoin');
+          return CoinDetailScreen(
+            coinId: state.pathParameters['id'] ?? 'bitcoin',
+          );
         },
       ),
       GoRoute(
         path: '/shop',
         builder: (context, state) => const ShopScreen(),
       ),
-      GoRoute(
-        path: '/cart',
-        builder: (context, state) => const CartScreen(),
-      ),
+      GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
       GoRoute(
         path: '/checkout',
         builder: (context, state) => const CheckoutScreen(),
@@ -131,12 +122,18 @@ class AppRoutes {
       GoRoute(
         path: '/transaction/:id',
         builder: (context, state) {
-          return TransactionDetailScreen(transactionId: state.pathParameters['id'] ?? '');
+          return TransactionDetailScreen(
+            transactionId: state.pathParameters['id'] ?? '',
+          );
         },
       ),
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/wishlist',
+        builder: (context, state) => const WishlistScreen(),
       ),
     ],
   );
@@ -153,7 +150,13 @@ class _ShellScreen extends StatefulWidget {
 class _ShellScreenState extends State<_ShellScreen> {
   int _currentIndex = 0;
 
-  static const _routes = ['/home', '/home/shop', '/home/scan', '/home/activity', '/home/profile'];
+  static const _routes = [
+    '/home',
+    '/home/shop',
+    '/home/scan',
+    '/home/activity',
+    '/home/profile',
+  ];
 
   void _onNavTap(int index) {
     if (index == _currentIndex) return;

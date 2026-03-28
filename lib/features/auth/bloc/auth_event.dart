@@ -31,4 +31,6 @@ class RegisterRequested extends AuthEvent {
 
 class CheckAuthStatus extends AuthEvent {}
 
+class BiometricLoginRequested extends AuthEvent {}
+
 class LogoutRequested extends AuthEvent {}

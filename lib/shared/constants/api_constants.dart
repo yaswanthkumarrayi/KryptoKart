@@ -2,7 +2,8 @@ class ApiConstants {
   ApiConstants._();
 
   // Backend base URL — change to your server IP for physical device
-  static const String backendBase = 'http://10.2.16.67:4000'; // Physical device
+  static const String backendBase =
+      'http://10.31.37.101:4000'; // Physical device
   // static const String backendBase = 'http://10.0.2.2:4000'; // Android emulator
   // static const String backendBase = 'http://localhost:4000'; // Web/Desktop
 
@@ -42,15 +43,21 @@ class ApiConstants {
   // Settings
   static const String settings = '$backendBase/api/settings';
 
+  // Wallet
+  static const String walletAddress = '$backendBase/api/wallet/address';
+  static const String walletSave = '$backendBase/api/wallet/save';
+  static String walletUpiMapping(String address) =>
+      '$backendBase/api/wallet/upi-mapping/$address';
+
   // CoinGecko
   static const String coinGeckoBase = 'https://api.coingecko.com/api/v3';
 
-  static String marketsEndpoint({String currency = 'usd', int perPage = 10}) =>
+  static String marketsEndpoint({String currency = 'inr', int perPage = 10}) =>
       '$coinGeckoBase/coins/markets?vs_currency=$currency&order=market_cap_desc&per_page=$perPage&page=1&sparkline=true&price_change_percentage=24h';
 
   static String marketChartEndpoint(String coinId, {int days = 7}) =>
-      '$coinGeckoBase/coins/$coinId/market_chart?vs_currency=usd&days=$days';
+      '$coinGeckoBase/coins/$coinId/market_chart?vs_currency=inr&days=$days';
 
   static String simplePriceEndpoint(List<String> coinIds) =>
-      '$coinGeckoBase/simple/price?ids=${coinIds.join(',')}&vs_currencies=inr,usd&include_24hr_change=true';
+      '$coinGeckoBase/simple/price?ids=${coinIds.join(',')}&vs_currencies=inr&include_24hr_change=true';
 }

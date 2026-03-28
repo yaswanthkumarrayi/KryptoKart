@@ -242,4 +242,26 @@ class ApiService {
     final response = await put(ApiConstants.settings, data: data);
     return response.data;
   }
+
+  // Wallet methods
+
+  /// Update the user's wallet address on the backend.
+  Future<Map<String, dynamic>> updateWallet(String walletAddress) async {
+    final response = await put(ApiConstants.walletSave, data: {
+      'walletAddress': walletAddress,
+    });
+    return response.data;
+  }
+
+  /// Get the UPI ID mapped to a wallet address.
+  Future<Map<String, dynamic>> getWalletUpiMapping(String address) async {
+    final response = await get(ApiConstants.walletUpiMapping(address));
+    return response.data;
+  }
+
+  /// Get the authenticated user's current wallet address + UPI mapping.
+  Future<Map<String, dynamic>> getWalletAddress() async {
+    final response = await get(ApiConstants.walletAddress);
+    return response.data;
+  }
 }

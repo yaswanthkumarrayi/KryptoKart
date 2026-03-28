@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/services/api_service.dart';
 import '../../../shared/models/user_model.dart';
 import 'auth_event.dart';
@@ -7,14 +8,45 @@ import 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ApiService _apiService;
 
+  /// Key used in SharedPreferences to store biometric preference locally.
+  static const _kBiometricKey = 'biometric_enabled';
+
   AuthBloc(this._apiService) : super(AuthInitial()) {
     on<CheckAuthStatus>(_onCheckAuth);
     on<LoginRequested>(_onLogin);
     on<RegisterRequested>(_onRegister);
+    on<BiometricLoginRequested>(_onBiometricLogin);
     on<LogoutRequested>(_onLogout);
   }
 
   Future<void> _onCheckAuth(CheckAuthStatus event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      await _apiService.loadToken();
+      if (_apiService.isAuthenticated) {
+        final data = await _apiService.getProfile();
+        final user = UserModel.fromJson(data['user']);
+
+        // Check if biometric is enabled locally
+        final prefs = await SharedPreferences.getInstance();
+        final biometricEnabled = prefs.getBool(_kBiometricKey) ?? false;
+
+        if (biometricEnabled) {
+          // Don't auto-login yet — require biometric first
+          emit(BiometricAuthRequired(user));
+        } else {
+          emit(Authenticated(user));
+        }
+      } else {
+        emit(Unauthenticated());
+      }
+    } catch (e) {
+      emit(Unauthenticated());
+    }
+  }
+
+  /// Called after successful biometric verification on the splash screen.
+  Future<void> _onBiometricLogin(BiometricLoginRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
       await _apiService.loadToken();
@@ -77,5 +109,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
     await _apiService.removeToken();
     emit(Unauthenticated());
+  }
+
+  /// Save biometric preference to local storage (called from settings screen).
+  static Future<void> setBiometricEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kBiometricKey, enabled);
   }
 }

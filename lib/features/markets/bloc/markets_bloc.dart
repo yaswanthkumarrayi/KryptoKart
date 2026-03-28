@@ -5,26 +5,32 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../shared/models/coin_model.dart';
 import '../../../shared/services/api_service.dart';
 import '../../../shared/services/coingecko_service.dart';
+import '../../../shared/services/wishlist_service.dart';
 
 // Events
 abstract class MarketsEvent extends Equatable {
   @override
   List<Object?> get props => [];
 }
+
 class LoadMarkets extends MarketsEvent {}
+
 class RefreshMarkets extends MarketsEvent {}
+
 class SearchCoins extends MarketsEvent {
   final String query;
   SearchCoins(this.query);
   @override
   List<Object> get props => [query];
 }
+
 class ToggleWatchlist extends MarketsEvent {
   final String coinId;
   ToggleWatchlist(this.coinId);
   @override
   List<Object> get props => [coinId];
 }
+
 class LoadCoinChart extends MarketsEvent {
   final String coinId;
   final int days;
@@ -38,8 +44,11 @@ abstract class MarketsState extends Equatable {
   @override
   List<Object?> get props => [];
 }
+
 class MarketsInitial extends MarketsState {}
+
 class MarketsLoading extends MarketsState {}
+
 class MarketsLoaded extends MarketsState {
   final List<CoinModel> coins;
   final List<CoinModel> filteredCoins;
@@ -47,6 +56,7 @@ class MarketsLoaded extends MarketsState {
   final List<FlSpot> chartData;
   final String? featuredCoinId;
   final String searchQuery;
+  final bool isRefreshing;
 
   MarketsLoaded({
     required this.coins,
@@ -55,10 +65,19 @@ class MarketsLoaded extends MarketsState {
     this.chartData = const [],
     this.featuredCoinId,
     this.searchQuery = '',
+    this.isRefreshing = false,
   });
 
   @override
-  List<Object?> get props => [coins, filteredCoins, watchlist, chartData, featuredCoinId, searchQuery];
+  List<Object?> get props => [
+    coins,
+    filteredCoins,
+    watchlist,
+    chartData,
+    featuredCoinId,
+    searchQuery,
+    isRefreshing,
+  ];
 
   MarketsLoaded copyWith({
     List<CoinModel>? coins,
@@ -67,6 +86,7 @@ class MarketsLoaded extends MarketsState {
     List<FlSpot>? chartData,
     String? featuredCoinId,
     String? searchQuery,
+    bool? isRefreshing,
   }) {
     return MarketsLoaded(
       coins: coins ?? this.coins,
@@ -75,9 +95,11 @@ class MarketsLoaded extends MarketsState {
       chartData: chartData ?? this.chartData,
       featuredCoinId: featuredCoinId ?? this.featuredCoinId,
       searchQuery: searchQuery ?? this.searchQuery,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
     );
   }
 }
+
 class MarketsError extends MarketsState {
   final String message;
   MarketsError(this.message);
@@ -89,9 +111,12 @@ class MarketsError extends MarketsState {
 class MarketsBloc extends Bloc<MarketsEvent, MarketsState> {
   final CoinGeckoService _coinGeckoService;
   final ApiService _apiService;
+  final WishlistService _wishlistService;
   Timer? _refreshTimer;
+  bool _isRefreshing = false;
 
-  MarketsBloc(this._coinGeckoService, this._apiService) : super(MarketsInitial()) {
+  MarketsBloc(this._coinGeckoService, this._apiService, this._wishlistService)
+    : super(MarketsInitial()) {
     on<LoadMarkets>(_onLoad);
     on<RefreshMarkets>(_onRefresh);
     on<SearchCoins>(_onSearch);
@@ -101,41 +126,100 @@ class MarketsBloc extends Bloc<MarketsEvent, MarketsState> {
 
   Future<void> _onLoad(LoadMarkets event, Emitter<MarketsState> emit) async {
     emit(MarketsLoading());
-    try {
-      final coins = await _coinGeckoService.fetchMarkets(perPage: 10);
-      final wlData = await _apiService.getWatchlist();
-      final chartData = await _coinGeckoService.fetchMarketChart('bitcoin', days: 7);
-      final watchlist = List<String>.from(wlData['coinIds'] ?? []);
+    
+    List<CoinModel> coins = [];
+    List<String> watchlist = [];
+    List<FlSpot> chartData = [];
 
-      emit(MarketsLoaded(
+    // Fetch coins from CoinGecko (public API)
+    try {
+      coins = await _coinGeckoService.fetchMarkets(perPage: 30);
+    } catch (e) {
+      coins = [];
+    }
+
+    // Load local wishlist first (instant)
+    try {
+      watchlist = await _wishlistService.getWishlist();
+    } catch (e) {
+      watchlist = [];
+    }
+
+    // Try to sync with backend wishlist
+    try {
+      final wlData = await _apiService.getWatchlist();
+      final coinIds = wlData['coinIds'];
+      if (coinIds != null && coinIds is List) {
+        final backendList = List<String>.from(coinIds);
+        await _wishlistService.syncWithBackend(backendList);
+        watchlist = await _wishlistService.getWishlist();
+      }
+    } catch (e) {
+      // Backend unavailable - use local wishlist
+    }
+
+    // Fetch chart data for featured coin
+    try {
+      chartData = await _coinGeckoService.fetchMarketChart('bitcoin', days: 7);
+    } catch (e) {
+      chartData = [];
+    }
+
+    // Emit loaded state even if some data is missing
+    emit(
+      MarketsLoaded(
         coins: coins,
         filteredCoins: coins,
         watchlist: watchlist,
         chartData: chartData,
         featuredCoinId: 'bitcoin',
-      ));
+      ),
+    );
 
-      _refreshTimer?.cancel();
-      _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+    // Start refresh timer with guard against concurrent refreshes
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (!_isRefreshing) {
         add(RefreshMarkets());
-      });
-    } catch (e) {
-      emit(MarketsError('Failed to load markets: ${e.toString()}'));
-    }
+      }
+    });
   }
 
-  Future<void> _onRefresh(RefreshMarkets event, Emitter<MarketsState> emit) async {
+  Future<void> _onRefresh(
+    RefreshMarkets event,
+    Emitter<MarketsState> emit,
+  ) async {
     if (state is! MarketsLoaded) return;
+    if (_isRefreshing) return; // Prevent concurrent refreshes
+    
     final current = state as MarketsLoaded;
+    _isRefreshing = true;
+    
     try {
-      final coins = await _coinGeckoService.fetchMarkets(perPage: 10);
-      final filtered = current.searchQuery.isEmpty
-          ? coins
-          : coins.where((c) =>
-              c.name.toLowerCase().contains(current.searchQuery.toLowerCase()) ||
-              c.symbol.toLowerCase().contains(current.searchQuery.toLowerCase())).toList();
-      emit(current.copyWith(coins: coins, filteredCoins: filtered));
-    } catch (_) {}
+      final coins = await _coinGeckoService.fetchMarkets(perPage: 30);
+      
+      // Only update if we got valid data
+      if (coins.isNotEmpty) {
+        final filtered = current.searchQuery.isEmpty
+            ? coins
+            : coins
+                  .where(
+                    (c) =>
+                        c.name.toLowerCase().contains(
+                          current.searchQuery.toLowerCase(),
+                        ) ||
+                        c.symbol.toLowerCase().contains(
+                          current.searchQuery.toLowerCase(),
+                        ),
+                  )
+                  .toList();
+        emit(current.copyWith(coins: coins, filteredCoins: filtered));
+      }
+    } catch (_) {
+      // Keep current data on error
+    } finally {
+      _isRefreshing = false;
+    }
   }
 
   void _onSearch(SearchCoins event, Emitter<MarketsState> emit) {
@@ -144,27 +228,63 @@ class MarketsBloc extends Bloc<MarketsEvent, MarketsState> {
     final query = event.query.toLowerCase();
     final filtered = query.isEmpty
         ? current.coins
-        : current.coins.where((c) =>
-            c.name.toLowerCase().contains(query) ||
-            c.symbol.toLowerCase().contains(query)).toList();
+        : current.coins
+              .where(
+                (c) =>
+                    c.name.toLowerCase().contains(query) ||
+                    c.symbol.toLowerCase().contains(query),
+              )
+              .toList();
     emit(current.copyWith(filteredCoins: filtered, searchQuery: event.query));
   }
 
-  Future<void> _onToggleWatchlist(ToggleWatchlist event, Emitter<MarketsState> emit) async {
+  Future<void> _onToggleWatchlist(
+    ToggleWatchlist event,
+    Emitter<MarketsState> emit,
+  ) async {
     if (state is! MarketsLoaded) return;
     final current = state as MarketsLoaded;
+    
+    // Optimistically update UI immediately
+    final isCurrentlyWishlisted = current.watchlist.contains(event.coinId);
+    final newWatchlist = List<String>.from(current.watchlist);
+    
+    if (isCurrentlyWishlisted) {
+      newWatchlist.remove(event.coinId);
+    } else {
+      newWatchlist.add(event.coinId);
+    }
+    
+    // Update local wishlist and emit state immediately
+    await _wishlistService.toggleWishlist(event.coinId);
+    emit(current.copyWith(watchlist: newWatchlist));
+    
+    // Try to sync with backend (non-blocking)
     try {
       final result = await _apiService.toggleWatchlist(event.coinId);
-      emit(current.copyWith(watchlist: List<String>.from(result['coinIds'])));
-    } catch (_) {}
+      final coinIds = result['coinIds'];
+      if (coinIds != null && coinIds is List) {
+        await _wishlistService.syncWithBackend(List<String>.from(coinIds));
+      }
+    } catch (_) {
+      // Backend sync failed - local state is still correct
+    }
   }
 
-  Future<void> _onLoadChart(LoadCoinChart event, Emitter<MarketsState> emit) async {
+  Future<void> _onLoadChart(
+    LoadCoinChart event,
+    Emitter<MarketsState> emit,
+  ) async {
     if (state is! MarketsLoaded) return;
     final current = state as MarketsLoaded;
     try {
-      final chartData = await _coinGeckoService.fetchMarketChart(event.coinId, days: event.days);
-      emit(current.copyWith(chartData: chartData, featuredCoinId: event.coinId));
+      final chartData = await _coinGeckoService.fetchMarketChart(
+        event.coinId,
+        days: event.days,
+      );
+      emit(
+        current.copyWith(chartData: chartData, featuredCoinId: event.coinId),
+      );
     } catch (_) {}
   }
 

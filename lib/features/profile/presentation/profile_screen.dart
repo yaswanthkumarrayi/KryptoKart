@@ -10,6 +10,7 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/models/user_model.dart';
 import '../../../shared/models/product_model.dart';
 import '../../../shared/services/api_service.dart';
+import '../../../shared/services/wallet_service.dart';
 import '../../../core/service_locator.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_event.dart';
@@ -202,37 +203,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showConnectedWallets() {
+    final walletService = sl<WalletService>();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
-            const Icon(Icons.account_balance_wallet_rounded, color: AppColors.accent, size: 40),
-            const SizedBox(height: 12),
-            Text('Connected Wallets', style: AppTextStyles.titleSmall),
-            const SizedBox(height: 20),
-            GlassCard(
-              child: Column(
-                children: [
-                  _walletRow('MetaMask', Icons.account_balance_wallet_rounded,
-                      _user?.walletAddress.isNotEmpty == true ? _user!.walletAddress : 'Not connected'),
-                  const Divider(color: AppColors.border),
-                  _walletRow('Phantom', Icons.blur_on_rounded, 'Not connected'),
-                ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 20),
+              const Icon(Icons.account_balance_wallet_rounded, color: AppColors.accent, size: 40),
+              const SizedBox(height: 12),
+              Text('Connected Wallets', style: AppTextStyles.titleSmall),
+              const SizedBox(height: 20),
+              GlassCard(
+                child: Column(
+                  children: [
+                    _walletRow(
+                      walletService.walletName ?? 'MetaMask',
+                      Icons.account_balance_wallet_rounded,
+                      walletService.isConnected
+                          ? '${walletService.connectedAddress!.substring(0, 6)}...${walletService.connectedAddress!.substring(walletService.connectedAddress!.length - 4)}'
+                          : 'Not connected',
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text('Connect wallets from the registration page', style: AppTextStyles.caption),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 16),
+              KkButton(
+                label: walletService.isConnected ? 'Disconnect Wallet' : 'Connect MetaMask',
+                icon: walletService.isConnected ? Icons.link_off : Icons.account_balance_wallet_outlined,
+                outlined: walletService.isConnected,
+                height: 44,
+                onTap: () async {
+                  if (walletService.isConnected) {
+                    await walletService.disconnect();
+                  } else {
+                    await walletService.connectMetaMask();
+                    // Save to backend
+                    if (walletService.isConnected && _apiService.isAuthenticated) {
+                      try { await _apiService.updateWallet(walletService.connectedAddress!); } catch (_) {}
+                    }
+                  }
+                  setSheetState(() {}); // Refresh the bottom sheet
+                  setState(() {}); // Refresh the profile screen
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
