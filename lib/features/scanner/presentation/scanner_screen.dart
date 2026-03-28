@@ -15,6 +15,7 @@ import '../../../shared/models/product_model.dart';
 import '../../../shared/services/api_service.dart';
 import '../../../shared/services/wallet_service.dart';
 import '../../../core/service_locator.dart';
+import '../../../core/utils/wallet_display.dart';
 
 class ScannerScreen extends StatefulWidget {
   final bool productMode;
@@ -183,14 +184,21 @@ class _ScannerScreenState extends State<ScannerScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: 24 + MediaQuery.paddingOf(ctx).bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             Container(
               width: 40, height: 4,
               decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
@@ -209,7 +217,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
             const SizedBox(height: 14),
             Text('QR Scanned!', style: AppTextStyles.titleSmall),
             const SizedBox(height: 6),
-            Text(recipientName, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent)),
+            Text(
+              recipientName,
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             if (amount.isNotEmpty)
               Text('Amount: ₹$amount', style: AppTextStyles.caption),
             const SizedBox(height: 24),
@@ -240,7 +254,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               icon: Icons.currency_bitcoin,
               title: 'Pay via Crypto',
               subtitle: hasWallet
-                  ? 'Using ${walletAddress!.substring(0, 6)}...${walletAddress!.substring(walletAddress!.length - 4)}'
+                  ? 'Using ${shortenWalletAddress(walletAddress)}'
                   : 'Connect a wallet first',
               color: AppColors.accent,
               enabled: hasWallet,
@@ -266,6 +280,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
             ),
           ],
+        ),
         ),
       ),
     ).whenComplete(() {
@@ -309,7 +324,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   Text(title, style: AppTextStyles.bodyMedium.copyWith(
                     color: enabled ? AppColors.textPrimary : AppColors.textSecondary,
                   )),
-                  Text(subtitle, style: AppTextStyles.caption.copyWith(fontSize: 11)),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.caption.copyWith(fontSize: 11),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
@@ -338,11 +358,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             Container(width: 40, height: 4,
               decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
@@ -408,7 +429,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
               onPressed: () { Navigator.pop(ctx); _resetScanner(); },
               child: Text('Scan Again', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     ).whenComplete(() { if (mounted) _resetScanner(); });
@@ -424,11 +446,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             Container(width: 40, height: 4,
               decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
@@ -439,7 +462,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 borderRadius: BorderRadius.circular(20)),
               child: const Icon(Icons.help_outline_rounded, color: AppColors.yellow, size: 48),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Text('Product Not Found', style: AppTextStyles.titleSmall),
             const SizedBox(height: 8),
             Text('Barcode: $barcode', style: AppTextStyles.caption),
@@ -483,7 +506,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   onTap: () { Navigator.pop(ctx); _resetScanner(); }),
               ),
             ]),
-          ],
+            ],
+          ),
         ),
       ),
     ).whenComplete(() { if (mounted) _resetScanner(); });
@@ -497,10 +521,28 @@ class _ScannerScreenState extends State<ScannerScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTextStyles.caption),
-          Flexible(child: Text(value, style: AppTextStyles.bodyMedium, textAlign: TextAlign.end)),
+          Flexible(
+            flex: 2,
+            child: Text(
+              label,
+              style: AppTextStyles.caption,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 3,
+            child: Text(
+              value,
+              style: AppTextStyles.bodyMedium,
+              textAlign: TextAlign.end,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );

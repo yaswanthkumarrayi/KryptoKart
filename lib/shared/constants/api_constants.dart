@@ -1,11 +1,21 @@
 class ApiConstants {
   ApiConstants._();
 
-  // Backend base URL — change to your server IP for physical device
-  static const String backendBase =
-      'http://192.168.13.0:4000'; // Physical device
-  // static const String backendBase = 'http://10.0.2.2:4000'; // Android emulator
-  // static const String backendBase = 'http://localhost:4000'; // Web/Desktop
+  /// Base URL for the Node backend (no trailing slash).
+  ///
+  /// Default is this machine’s current LAN IPv4 (from `ipconfig` Wi‑Fi adapter). DHCP may
+  /// change it after reconnecting — update here or use `--dart-define` if login times out.
+  ///
+  /// - Android **emulator**: `http://10.0.2.2:4000` also reaches the host; use that if
+  ///   the LAN IP does not work from the emulator.
+  /// - **Physical phone**: phone and PC must be on the same network; use the PC’s IPv4.
+  /// - **Web/desktop**: often `http://localhost:4000`.
+  ///
+  /// Override: `flutter run --dart-define=API_BACKEND_URL=http://10.103.98.237:4000`
+  static const String backendBase = String.fromEnvironment(
+    'API_BACKEND_URL',
+    defaultValue: 'http://10.103.98.237:4000',
+  );
 
   // Auth
   static const String register = '$backendBase/api/auth/register';

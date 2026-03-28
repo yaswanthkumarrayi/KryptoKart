@@ -54,11 +54,14 @@ class _CartScreenState extends State<CartScreen> {
                         Container(width: 50, height: 50, decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary, size: 24)),
                         const SizedBox(width: 12),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item.product.name, style: AppTextStyles.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis), Text(CurrencyFormatter.formatInr(item.product.priceInr), style: AppTextStyles.caption)])),
-                        Row(children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                           _qtyBtn(Icons.remove, () { if (item.quantity > 1) _updateQty(item.product.id, item.quantity - 1); else _remove(item.product.id); }),
-                          Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text('${item.quantity}', style: AppTextStyles.bodyMedium)),
+                          Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('${item.quantity}', style: AppTextStyles.bodyMedium)),
                           _qtyBtn(Icons.add, () => _updateQty(item.product.id, item.quantity + 1)),
-                        ]),
+                        ],
+                        ),
                       ])));
                   })),
                   Container(padding: const EdgeInsets.all(20), decoration: const BoxDecoration(color: AppColors.surface, border: Border(top: BorderSide(color: AppColors.border))),
@@ -75,5 +78,33 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _qtyBtn(IconData icon, VoidCallback onTap) => GestureDetector(onTap: onTap, child: Container(width: 30, height: 30, decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 16, color: AppColors.textPrimary)));
-  Widget _row(String l, String v, {bool bold = false}) => Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: bold ? AppTextStyles.bodyMedium : AppTextStyles.caption), Text(v, style: bold ? AppTextStyles.bodyMedium.copyWith(color: AppColors.accent) : AppTextStyles.bodyMedium)]));
+  Widget _row(String l, String v, {bool bold = false}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Flexible(
+              flex: 2,
+              child: Text(
+                l,
+                style: bold ? AppTextStyles.bodyMedium : AppTextStyles.caption,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              flex: 3,
+              child: Text(
+                v,
+                style: bold
+                    ? AppTextStyles.bodyMedium.copyWith(color: AppColors.accent)
+                    : AppTextStyles.bodyMedium,
+                textAlign: TextAlign.end,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
 }

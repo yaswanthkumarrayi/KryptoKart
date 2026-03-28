@@ -52,10 +52,14 @@ class CryptoMiniCard extends StatelessWidget {
                 Text(
                   '${coin.symbol}/INR',
                   style: AppTextStyles.bodyMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   inrPrice != null ? '₹${_formatInrCompact(inrPrice!)}' : coin.priceFormatted,
                   style: AppTextStyles.caption,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -74,6 +78,8 @@ class CryptoMiniCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: isPositive ? AppColors.green : AppColors.red,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

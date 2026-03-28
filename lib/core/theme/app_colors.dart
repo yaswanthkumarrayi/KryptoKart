@@ -3,39 +3,41 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Core backgrounds
-  static const Color background = Color(0xFF00040F);
-  static const Color surface = Color(0xFF0D1117);
-  static const Color surface2 = Color(0xFF161B22);
+  // ── Core backgrounds (true black, like Coinbase / Kraken) ──────────────
+  static const Color background  = Color(0xFF000000); // pure black
+  static const Color surface     = Color(0xFF111111); // card surface
+  static const Color surface2    = Color(0xFF1A1A1A); // elevated surface
 
-  // Accent colors
-  static const Color accent = Color(0xFF00F6FF);
-  static const Color accentGlow = Color(0x3300F6FF);
-  static const Color accentBlue = Color(0xFF0080FF);
+  // ── Accent — crisp white / silver (no colour tint) ─────────────────────
+  static const Color accent      = Color(0xFFFFFFFF); // primary white
+  static const Color accentGlow  = Color(0x18FFFFFF); // subtle white glow
+  static const Color accentBlue  = Color(0xFFE0E0E0); // silver / off-white
 
-  // Semantic colors
-  static const Color green = Color(0xFF00D26A);
-  static const Color red = Color(0xFFFF4B4B);
-  static const Color yellow = Color(0xFFFFD700);
-  static const Color purple = Color(0xFF7B61FF);
+  // ── Semantic colours (muted, professional) ──────────────────────────────
+  static const Color green  = Color(0xFF22C55E); // profit green
+  static const Color red    = Color(0xFFEF4444); // loss red
+  static const Color yellow = Color(0xFFF59E0B); // warning amber
+  static const Color purple = Color(0xFFA78BFA); // info purple
 
-  // Text colors
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFF8B98A5);
+  // ── Text ────────────────────────────────────────────────────────────────
+  static const Color textPrimary   = Color(0xFFFFFFFF); // pure white
+  static const Color textSecondary = Color(0xFF9CA3AF); // gray-400
 
-  // Border & divider
-  static const Color border = Color(0xFF21262D);
+  // ── Borders & dividers ──────────────────────────────────────────────────
+  static const Color border = Color(0xFF2A2A2A); // very dark border
 
-  // Gradients
+  // ── Gradients ───────────────────────────────────────────────────────────
+  /// Button / hero gradient: white → light-silver
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [accent, accentBlue],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
+    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
   );
 
+  /// Chart area fill gradient
   static const LinearGradient chartGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0x5500F6FF), Color(0x0000F6FF)],
+    colors: [Color(0x33FFFFFF), Color(0x00FFFFFF)],
   );
 }

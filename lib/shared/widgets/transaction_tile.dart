@@ -60,22 +60,30 @@ class TransactionTile extends StatelessWidget {
               ),
             ),
             // Amount
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '- ${CurrencyFormatter.formatInr(transaction.amountInr)}',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.red,
-                    fontWeight: FontWeight.w600,
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '- ${CurrencyFormatter.formatInr(transaction.amountInr)}',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.red,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  transaction.type.toUpperCase(),
-                  style: AppTextStyles.caption.copyWith(fontSize: 10),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    transaction.type.toUpperCase(),
+                    style: AppTextStyles.caption.copyWith(fontSize: 10),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

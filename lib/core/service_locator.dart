@@ -29,7 +29,9 @@ Future<void> setupServiceLocator() async {
   await sl<WishlistService>().initialize();
 
   // Auth Bloc (singleton — persists across app)
-  sl.registerLazySingleton<AuthBloc>(() => AuthBloc(sl<ApiService>()));
+  sl.registerLazySingleton<AuthBloc>(
+    () => AuthBloc(sl<ApiService>(), sl<WalletService>()),
+  );
 
   // Feature Blocs (factories — new instance per route)
   sl.registerFactory<DashboardBloc>(

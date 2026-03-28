@@ -9,8 +9,8 @@ class ApiService {
   ApiService() {
     _dio = Dio(
       BaseOptions(
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: const Duration(seconds: 12),
+        receiveTimeout: const Duration(seconds: 12),
         headers: {'Content-Type': 'application/json'},
       ),
     );
@@ -92,6 +92,7 @@ class ApiService {
     required String phone,
     required String password,
     String? upiId,
+    String? walletAddress,
   }) async {
     final response = await post(
       ApiConstants.register,
@@ -100,6 +101,8 @@ class ApiService {
         'phone': phone,
         'password': password,
         'upiId': upiId,
+        if (walletAddress != null && walletAddress.trim().isNotEmpty)
+          'walletAddress': walletAddress.trim(),
       },
     );
     return response.data;

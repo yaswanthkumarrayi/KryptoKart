@@ -91,7 +91,7 @@ class KkButton extends StatelessWidget {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: MainAxisSize.max,
       children: [
         if (icon != null) ...[
           Icon(
@@ -101,10 +101,15 @@ class KkButton extends StatelessWidget {
           ),
           const SizedBox(width: 8),
         ],
-        Text(
-          label,
-          style: AppTextStyles.button.copyWith(
-            color: isOutlined ? AppColors.accent : AppColors.background,
+        Flexible(
+          child: Text(
+            label,
+            style: AppTextStyles.button.copyWith(
+              color: isOutlined ? AppColors.accent : AppColors.background,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

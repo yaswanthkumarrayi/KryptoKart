@@ -87,22 +87,30 @@ class CoinListTile extends StatelessWidget {
               ),
             ),
             // Price and change
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  coin.priceFormatted,
-                  style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  coin.changeFormatted,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: isPositive ? AppColors.green : AppColors.red,
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    coin.priceFormatted,
+                    style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
                   ),
-                ),
-              ],
+                  Text(
+                    coin.changeFormatted,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isPositive ? AppColors.green : AppColors.red,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(width: 8),
             // Watchlist star

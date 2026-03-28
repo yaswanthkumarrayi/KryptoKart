@@ -8,6 +8,7 @@ import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/widgets/kk_text_field.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/utils/wallet_display.dart';
 import '../../../core/service_locator.dart';
 import '../../../shared/services/wallet_service.dart';
 import '../../../shared/services/api_service.dart';
@@ -69,6 +70,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             phone: _phoneController.text.trim(),
             password: _passwordController.text,
             upiId: _upiController.text.trim().isEmpty ? null : _upiController.text.trim(),
+            walletAddress: _walletAddress,
           ));
     }
   }
@@ -98,7 +100,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('MetaMask connected: ${address.substring(0, 6)}...${address.substring(address.length - 4)}'),
+            content: Text('MetaMask connected: ${shortenWalletAddress(address)}'),
             backgroundColor: AppColors.green,
           ),
         );
@@ -197,25 +199,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         Row(
                           children: [
-                            Text('Connect Wallet', style: AppTextStyles.bodyMedium),
+                            Expanded(
+                              child: Text(
+                                'Connect Wallet',
+                                style: AppTextStyles.bodyMedium,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(50)),
                               child: Text('OPTIONAL', style: AppTextStyles.caption.copyWith(fontSize: 10)),
                             ),
-                            if (_connectedWallet != null) ...[
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(color: AppColors.green.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(50)),
-                                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                  const Icon(Icons.check_circle, color: AppColors.green, size: 12),
-                                  const SizedBox(width: 4),
-                                  Text(_connectedWallet!, style: AppTextStyles.caption.copyWith(color: AppColors.green, fontSize: 10)),
-                                ]),
+                            if (_connectedWallet != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(color: AppColors.green.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(50)),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.check_circle, color: AppColors.green, size: 12),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          _connectedWallet!,
+                                          style: AppTextStyles.caption.copyWith(color: AppColors.green, fontSize: 10),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ],
                           ],
                         ),
                         // Show wallet address when connected
@@ -233,7 +253,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    '${_walletAddress!.substring(0, 6)}...${_walletAddress!.substring(_walletAddress!.length - 4)}',
+                                    shortenWalletAddress(_walletAddress),
                                     style: AppTextStyles.captionMedium.copyWith(color: AppColors.accent, fontFamily: 'monospace'),
                                   ),
                                 ),

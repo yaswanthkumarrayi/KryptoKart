@@ -1,17 +1,19 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/services/api_service.dart';
+import '../../../shared/services/wallet_service.dart';
 import '../../../shared/models/user_model.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ApiService _apiService;
+  final WalletService _walletService;
 
   /// Key used in SharedPreferences to store biometric preference locally.
   static const _kBiometricKey = 'biometric_enabled';
 
-  AuthBloc(this._apiService) : super(AuthInitial()) {
+  AuthBloc(this._apiService, this._walletService) : super(AuthInitial()) {
     on<CheckAuthStatus>(_onCheckAuth);
     on<LoginRequested>(_onLogin);
     on<RegisterRequested>(_onRegister);
@@ -19,13 +21,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LogoutRequested>(_onLogout);
   }
 
-  Future<void> _onCheckAuth(CheckAuthStatus event, Emitter<AuthState> emit) async {
+  Future<void> _onCheckAuth(
+    CheckAuthStatus event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
       await _apiService.loadToken();
       if (_apiService.isAuthenticated) {
         final data = await _apiService.getProfile();
-        final user = UserModel.fromJson(data['user']);
+        final user = UserModel.fromProfileApiResponse(data);
 
         // Check if biometric is enabled locally
         final prefs = await SharedPreferences.getInstance();
@@ -46,13 +51,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   /// Called after successful biometric verification on the splash screen.
-  Future<void> _onBiometricLogin(BiometricLoginRequested event, Emitter<AuthState> emit) async {
+  Future<void> _onBiometricLogin(
+    BiometricLoginRequested event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
       await _apiService.loadToken();
       if (_apiService.isAuthenticated) {
         final data = await _apiService.getProfile();
-        final user = UserModel.fromJson(data['user']);
+        final user = UserModel.fromProfileApiResponse(data);
         emit(Authenticated(user));
       } else {
         emit(Unauthenticated());
@@ -70,20 +78,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       await _apiService.saveToken(data['token']);
-      final user = UserModel.fromJson(data['user']);
+      await _syncConnectedWalletToBackend();
+      final user = UserModel.fromProfileApiResponse(
+        Map<String, dynamic>.from(data),
+      );
       emit(Authenticated(user));
     } catch (e) {
       String message = 'Login failed. Please try again.';
       if (e.toString().contains('401')) {
         message = 'Invalid phone or password';
-      } else if (e.toString().contains('SocketException') || e.toString().contains('connection')) {
+      } else if (e.toString().contains('SocketException') ||
+          e.toString().contains('connection')) {
         message = 'Cannot connect to server. Please check your connection.';
       }
       emit(AuthError(message));
     }
   }
 
-  Future<void> _onRegister(RegisterRequested event, Emitter<AuthState> emit) async {
+  Future<void> _onRegister(
+    RegisterRequested event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
       final data = await _apiService.register(
@@ -91,15 +106,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         phone: event.phone,
         password: event.password,
         upiId: event.upiId,
+        walletAddress: event.walletAddress,
       );
       await _apiService.saveToken(data['token']);
-      final user = UserModel.fromJson(data['user']);
+      await _syncConnectedWalletToBackend();
+      final user = UserModel.fromProfileApiResponse(
+        Map<String, dynamic>.from(data),
+      );
       emit(Authenticated(user));
     } catch (e) {
       String message = 'Registration failed. Please try again.';
       if (e.toString().contains('409')) {
         message = 'Phone number already registered';
-      } else if (e.toString().contains('SocketException') || e.toString().contains('connection')) {
+      } else if (e.toString().contains('SocketException') ||
+          e.toString().contains('connection')) {
         message = 'Cannot connect to server. Please check your connection.';
       }
       emit(AuthError(message));
@@ -109,6 +129,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
     await _apiService.removeToken();
     emit(Unauthenticated());
+  }
+
+  /// Pushes the locally connected wallet to `PUT /api/wallet/save` after auth.
+  Future<void> _syncConnectedWalletToBackend() async {
+    final addr = _walletService.connectedAddress;
+    if (addr == null || addr.isEmpty) return;
+    try {
+      await _apiService.updateWallet(addr);
+    } catch (_) {}
   }
 
   /// Save biometric preference to local storage (called from settings screen).

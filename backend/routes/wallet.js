@@ -94,11 +94,17 @@ router.get('/address', auth, async (req, res) => {
  */
 router.put('/save', auth, async (req, res) => {
   try {
-    const { walletAddress } = req.body;
+    let walletAddress = (req.body.walletAddress || '').trim();
 
     if (!walletAddress) {
       return res.status(400).json({ error: 'walletAddress is required' });
     }
+
+    if (!walletAddress.startsWith('0x') || walletAddress.length < 10) {
+      return res.status(400).json({ error: 'Invalid wallet address format' });
+    }
+
+    walletAddress = walletAddress.toLowerCase();
 
     const user = await User.findByIdAndUpdate(
       req.user._id,

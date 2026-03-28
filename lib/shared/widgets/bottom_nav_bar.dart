@@ -22,13 +22,12 @@ class BottomNavBar extends StatelessWidget {
         child: SizedBox(
           height: 64,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_rounded, 'Home'),
-              _buildNavItem(1, Icons.shopping_bag_rounded, 'Shop'),
+              Expanded(child: _buildNavItem(0, Icons.home_rounded, 'Home')),
+              Expanded(child: _buildNavItem(1, Icons.shopping_bag_rounded, 'Shop')),
               _buildScanFab(),
-              _buildNavItem(3, Icons.receipt_long_rounded, 'Activity'),
-              _buildNavItem(4, Icons.person_rounded, 'Profile'),
+              Expanded(child: _buildNavItem(3, Icons.receipt_long_rounded, 'Activity')),
+              Expanded(child: _buildNavItem(4, Icons.person_rounded, 'Profile')),
             ],
           ),
         ),
@@ -41,25 +40,11 @@ class BottomNavBar extends StatelessWidget {
     return GestureDetector(
       onTap: () => onTap(index),
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 60,
-        child: Column(
+      child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
+            Padding(
               padding: const EdgeInsets.all(6),
-              decoration: isActive
-                  ? BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    )
-                  : null,
               child: Icon(
                 icon,
                 color: isActive ? AppColors.accent : AppColors.textSecondary,
@@ -69,6 +54,9 @@ class BottomNavBar extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
@@ -77,7 +65,6 @@ class BottomNavBar extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -87,16 +74,9 @@ class BottomNavBar extends StatelessWidget {
       child: Container(
         width: 56,
         height: 56,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: AppColors.accentGradient,
           shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.accent.withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: const Icon(
           Icons.qr_code_scanner_rounded,

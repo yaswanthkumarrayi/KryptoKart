@@ -19,14 +19,17 @@ class RegisterRequested extends AuthEvent {
   final String phone;
   final String password;
   final String? upiId;
+  /// MetaMask / WalletConnect address persisted on user profile when provided.
+  final String? walletAddress;
   const RegisterRequested({
     required this.name,
     required this.phone,
     required this.password,
     this.upiId,
+    this.walletAddress,
   });
   @override
-  List<Object?> get props => [name, phone, password, upiId];
+  List<Object?> get props => [name, phone, password, upiId, walletAddress];
 }
 
 class CheckAuthStatus extends AuthEvent {}

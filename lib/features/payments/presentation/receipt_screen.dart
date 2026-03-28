@@ -40,20 +40,70 @@ class ReceiptScreen extends StatelessWidget {
           ],
         ])).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
         const SizedBox(height: 30),
-        Row(children: [
-          Expanded(child: KkButton(label: 'Share Receipt', onTap: () {}, outlined: true, height: 48, icon: Icons.share)),
-          const SizedBox(width: 12),
-          Expanded(child: KkButton(label: 'Done', onTap: () => context.go('/home'), height: 48)),
-        ]).animate().fadeIn(delay: 600.ms),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final narrow = constraints.maxWidth < 360;
+            final share = KkButton(
+              label: 'Share Receipt',
+              onTap: () {},
+              outlined: true,
+              height: 48,
+              icon: Icons.share,
+            );
+            final done = KkButton(
+              label: 'Done',
+              onTap: () => context.go('/home'),
+              height: 48,
+            );
+            if (narrow) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  share,
+                  const SizedBox(height: 12),
+                  done,
+                ],
+              ).animate().fadeIn(delay: 600.ms);
+            }
+            return Row(
+              children: [
+                Expanded(child: share),
+                const SizedBox(width: 12),
+                Expanded(child: done),
+              ],
+            ).animate().fadeIn(delay: 600.ms);
+          },
+        ),
         const SizedBox(height: 40),
       ]))),
     );
   }
 
   Widget _row(String label, String value) {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(label, style: AppTextStyles.caption),
-      Flexible(child: Text(value, style: AppTextStyles.bodyMedium, textAlign: TextAlign.end, maxLines: 1, overflow: TextOverflow.ellipsis)),
-    ]);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Flexible(
+          flex: 2,
+          child: Text(
+            label,
+            style: AppTextStyles.caption,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          flex: 3,
+          child: Text(
+            value,
+            style: AppTextStyles.bodyMedium,
+            textAlign: TextAlign.end,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
   }
 }

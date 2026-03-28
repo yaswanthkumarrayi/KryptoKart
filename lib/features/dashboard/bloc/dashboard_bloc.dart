@@ -58,7 +58,14 @@ class DashboardLoaded extends DashboardState {
   });
 
   @override
-  List<Object?> get props => [user, topCoins, recentTransactions, livePrices, isOfflineMode, calculatedPortfolio];
+  List<Object?> get props => [
+    user,
+    topCoins,
+    recentTransactions,
+    livePrices,
+    isOfflineMode,
+    calculatedPortfolio,
+  ];
 
   DashboardLoaded copyWith({
     UserModel? user,
@@ -92,7 +99,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final CoinGeckoService _coinGeckoService;
   Timer? _priceTimer;
   bool _isRefreshing = false;
-  
+
   // Cache last known good values to prevent 0.00 display
   Map<String, dynamic>? _lastKnownPrices;
   List<CoinModel>? _lastKnownCoins;
@@ -108,7 +115,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     Emitter<DashboardState> emit,
   ) async {
     emit(DashboardLoading());
-    
+
     // Default fallback user for offline/error mode
     UserModel user = const UserModel(
       id: 'guest',
@@ -122,45 +129,72 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     Map<String, dynamic>? livePrices;
     bool isOfflineMode = false;
 
-    // Fetch crypto data from CoinGecko FIRST (most important)
+    const apiTimeout = Duration(seconds: 4);
+    const geoTimeout = Duration(seconds: 6);
+
+    // Run market data + backend in parallel so the home screen is not blocked
+    // sequentially on slow networks.
+    late Map<String, dynamic> profileData;
+    late Map<String, dynamic> txnData;
+
     try {
-      coins = await _coinGeckoService.fetchMarkets(perPage: 20);
+      final bundle = await Future.wait<dynamic>([
+        _coinGeckoService
+            .fetchMarkets(perPage: 20)
+            .timeout(geoTimeout, onTimeout: () => <CoinModel>[]),
+        _coinGeckoService
+            .fetchSimplePrice(DashboardLoaded.supportedCoinIds)
+            .timeout(geoTimeout, onTimeout: () => <String, dynamic>{}),
+        _apiService
+            .getProfile()
+            .timeout(apiTimeout)
+            .catchError((_) => <String, dynamic>{}),
+        _apiService
+            .getTransactions(limit: 3)
+            .timeout(apiTimeout)
+            .catchError((_) => <String, dynamic>{}),
+      ]);
+
+      coins = bundle[0] as List<CoinModel>;
+      final priceMap = bundle[1] as Map<String, dynamic>;
+      livePrices = priceMap;
+      profileData = bundle[2] as Map<String, dynamic>;
+      txnData = bundle[3] as Map<String, dynamic>;
+
       if (coins.isNotEmpty) {
         _lastKnownCoins = coins;
       } else if (_lastKnownCoins != null) {
         coins = _lastKnownCoins!;
       }
-    } catch (e) {
-      if (_lastKnownCoins != null) {
-        coins = _lastKnownCoins!;
-      }
-    }
 
-    // Fetch live prices from CoinGecko
-    try {
-      livePrices = await _coinGeckoService.fetchSimplePrice(
-        DashboardLoaded.supportedCoinIds,
-      );
-      if (livePrices != null && livePrices.isNotEmpty) {
-        _lastKnownPrices = livePrices;
+      if (priceMap.isNotEmpty) {
+        _lastKnownPrices = priceMap;
       } else if (_lastKnownPrices != null) {
         livePrices = _lastKnownPrices;
       }
-    } catch (e) {
+    } catch (_) {
+      if (_lastKnownCoins != null) {
+        coins = _lastKnownCoins!;
+      }
       if (_lastKnownPrices != null) {
         livePrices = _lastKnownPrices;
       }
+      profileData = {};
+      txnData = {};
     }
 
     // Calculate portfolio value from live prices (prevents 0.00 issue)
     double calculatedPortfolio = _calculatePortfolio(livePrices);
 
-    // Try to fetch user profile (may fail if not authenticated)
     try {
-      final profileData = await _apiService.getProfile();
-      if (profileData['user'] != null) {
-        user = UserModel.fromJson(profileData['user']);
-        // Only use backend portfolio if we have valid prices
+      final hasUser =
+          profileData.isNotEmpty &&
+          (profileData['user'] != null ||
+              profileData['name'] != null ||
+              profileData['phone'] != null);
+
+      if (hasUser) {
+        user = UserModel.fromProfileApiResponse(profileData);
         if (user.portfolioValue <= 0 && calculatedPortfolio > 0) {
           user = UserModel(
             id: user.id,
@@ -170,9 +204,26 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
             kycStatus: user.kycStatus,
           );
         }
+      } else {
+        isOfflineMode = true;
+        user = UserModel(
+          id: 'guest',
+          name: 'Guest User',
+          phone: '',
+          portfolioValue: calculatedPortfolio,
+          kycStatus: 'pending',
+        );
       }
-    } catch (e) {
-      // Backend unavailable or not authenticated - continue with guest mode
+
+      if (txnData['transactions'] != null) {
+        final txnList = txnData['transactions'];
+        if (txnList is List) {
+          transactions = txnList
+              .map((json) => TransactionModel.fromJson(json))
+              .toList();
+        }
+      }
+    } catch (_) {
       isOfflineMode = true;
       user = UserModel(
         id: 'guest',
@@ -181,20 +232,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         portfolioValue: calculatedPortfolio,
         kycStatus: 'pending',
       );
-    }
-
-    // Try to fetch transactions (may fail if not authenticated)
-    try {
-      final txnData = await _apiService.getTransactions(limit: 5);
-      final txnList = txnData['transactions'];
-      if (txnList != null && txnList is List) {
-        transactions = txnList
-            .map((json) => TransactionModel.fromJson(json))
-            .toList();
-      }
-    } catch (e) {
-      // Backend unavailable - continue without transactions
-      isOfflineMode = true;
     }
 
     // Emit loaded state (even if some data is missing)
@@ -224,20 +261,20 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   ) async {
     if (state is! DashboardLoaded) return;
     if (_isRefreshing) return; // Prevent concurrent refreshes
-    
+
     final current = state as DashboardLoaded;
     _isRefreshing = true;
-    
+
     try {
       // Fetch in parallel
       final results = await Future.wait([
         _coinGeckoService.fetchMarkets(perPage: 20),
         _coinGeckoService.fetchSimplePrice(DashboardLoaded.supportedCoinIds),
       ]);
-      
+
       final coins = results[0] as List<CoinModel>;
       final prices = results[1] as Map<String, dynamic>;
-      
+
       // Only update if we got valid data
       if (coins.isNotEmpty) {
         _lastKnownCoins = coins;
@@ -245,16 +282,20 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       if (prices.isNotEmpty) {
         _lastKnownPrices = prices;
       }
-      
+
       final newPrices = prices.isNotEmpty ? prices : current.livePrices;
       final newCoins = coins.isNotEmpty ? coins : current.topCoins;
       final newPortfolio = _calculatePortfolio(newPrices);
-      
-      emit(current.copyWith(
-        topCoins: newCoins,
-        livePrices: newPrices,
-        calculatedPortfolio: newPortfolio > 0 ? newPortfolio : current.calculatedPortfolio,
-      ));
+
+      emit(
+        current.copyWith(
+          topCoins: newCoins,
+          livePrices: newPrices,
+          calculatedPortfolio: newPortfolio > 0
+              ? newPortfolio
+              : current.calculatedPortfolio,
+        ),
+      );
     } catch (_) {
       // Keep current data on error - don't update with empty/zero values
     } finally {
@@ -266,19 +307,19 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   /// This ensures we never show 0.00 when we have valid price data
   double _calculatePortfolio(Map<String, dynamic>? prices) {
     if (prices == null || prices.isEmpty) return 0;
-    
+
     final btcPrice = (prices['bitcoin']?['inr'] as num?)?.toDouble() ?? 0;
     final ethPrice = (prices['ethereum']?['inr'] as num?)?.toDouble() ?? 0;
     final usdtPrice = (prices['tether']?['inr'] as num?)?.toDouble() ?? 0;
-    
+
     // Sample holdings for demonstration
-    const btcHolding = 0.001;  // 0.001 BTC
-    const ethHolding = 0.05;   // 0.05 ETH
-    const usdtHolding = 100;   // 100 USDT
-    
-    return (btcPrice * btcHolding) + 
-           (ethPrice * ethHolding) + 
-           (usdtPrice * usdtHolding);
+    const btcHolding = 0.001; // 0.001 BTC
+    const ethHolding = 0.05; // 0.05 ETH
+    const usdtHolding = 100; // 100 USDT
+
+    return (btcPrice * btcHolding) +
+        (ethPrice * ethHolding) +
+        (usdtPrice * usdtHolding);
   }
 
   @override

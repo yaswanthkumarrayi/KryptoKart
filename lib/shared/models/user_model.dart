@@ -23,6 +23,15 @@ class UserModel {
     this.avatarUrl = '',
   });
 
+  /// Handles both `{ "user": { ... } }` and a flat user map from `/profile`.
+  factory UserModel.fromProfileApiResponse(Map<String, dynamic> json) {
+    final raw = json['user'];
+    if (raw is Map<String, dynamic>) {
+      return UserModel.fromJson(raw);
+    }
+    return UserModel.fromJson(json);
+  }
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['_id'] ?? json['id'] ?? '',
@@ -39,16 +48,16 @@ class UserModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'phone': phone,
-        'upiId': upiId,
-        'walletAddress': walletAddress,
-        'kycStatus': kycStatus,
-        'portfolioValue': portfolioValue,
-        'cryptoBalanceInr': cryptoBalanceInr,
-        'upiBalance': upiBalance,
-        'avatarUrl': avatarUrl,
-      };
+    'name': name,
+    'phone': phone,
+    'upiId': upiId,
+    'walletAddress': walletAddress,
+    'kycStatus': kycStatus,
+    'portfolioValue': portfolioValue,
+    'cryptoBalanceInr': cryptoBalanceInr,
+    'upiBalance': upiBalance,
+    'avatarUrl': avatarUrl,
+  };
 
   UserModel copyWith({
     String? name,

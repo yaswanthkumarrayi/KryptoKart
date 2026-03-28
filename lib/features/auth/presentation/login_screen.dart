@@ -37,10 +37,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _onLogin() {
     if (_formKey.currentState?.validate() ?? false) {
-      context.read<AuthBloc>().add(LoginRequested(
-            phone: _phoneController.text.trim(),
-            password: _passwordController.text,
-          ));
+      context.read<AuthBloc>().add(
+        LoginRequested(
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 
@@ -118,19 +120,29 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.shield_rounded, size: 44, color: AppColors.background),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      size: 44,
+                      color: AppColors.background,
+                    ),
                   ).animate().scale(duration: 600.ms, curve: Curves.easeOut),
 
                   const SizedBox(height: 20),
 
-                  Text('KryptoKart', style: AppTextStyles.display.copyWith(color: AppColors.accent))
-                      .animate().fadeIn(delay: 200.ms),
+                  Text(
+                    'KryptoKart',
+                    style: AppTextStyles.display.copyWith(
+                      color: AppColors.accent,
+                    ),
+                  ).animate().fadeIn(delay: 200.ms),
 
                   const SizedBox(height: 8),
 
                   Text(
                     'Your unified fintech ecosystem',
-                    style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ).animate().fadeIn(delay: 300.ms),
 
                   const SizedBox(height: 40),
@@ -146,7 +158,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           keyboardType: TextInputType.phone,
                           validator: Validators.validatePhone,
                           prefix: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.surface2,
                               borderRadius: BorderRadius.circular(8),
@@ -163,10 +178,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           validator: Validators.validatePassword,
                           suffix: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: AppColors.textSecondary,
                             ),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -176,7 +195,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             onPressed: () {},
                             child: Text(
                               'Forgot PIN?',
-                              style: AppTextStyles.caption.copyWith(color: AppColors.accent),
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.accent,
+                              ),
                             ),
                           ),
                         ),
@@ -219,6 +240,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     onTap: () => context.push('/register'),
                     outlined: true,
                   ).animate().fadeIn(delay: 600.ms),
+
+                  const SizedBox(height: 20),
+
+                  // Skip button
+                  TextButton(
+                    onPressed: () => context.go('/home'),
+                    child: Text(
+                      'Skip for Login Now',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.accent,
+                      ),
+                    ),
+                  ).animate().fadeIn(delay: 700.ms),
 
                   const SizedBox(height: 40),
                 ],

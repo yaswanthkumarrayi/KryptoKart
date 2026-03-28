@@ -10,7 +10,14 @@ const router = express.Router();
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, phone, password, upiId, walletAddress } = req.body;
+    const { name, phone, password, upiId, walletAddress: rawWallet } = req.body;
+    let walletAddress = typeof rawWallet === 'string' ? rawWallet.trim() : '';
+    if (walletAddress) {
+      if (!walletAddress.startsWith('0x') || walletAddress.length < 10) {
+        return res.status(400).json({ error: 'Invalid wallet address format' });
+      }
+      walletAddress = walletAddress.toLowerCase();
+    }
 
     if (!name || !phone || !password) {
       return res.status(400).json({ error: 'Name, phone, and password are required' });
@@ -30,7 +37,7 @@ router.post('/register', async (req, res) => {
       phone,
       password,
       upiId: upiId || `${phone}@kryptokart`,
-      walletAddress: walletAddress || '',
+      walletAddress,
     });
 
     await user.save();

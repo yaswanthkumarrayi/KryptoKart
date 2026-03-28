@@ -209,7 +209,13 @@ class DashboardScreen extends StatelessWidget {
                   child: Icon(icon, color: color, size: 24),
                 ),
                 const SizedBox(height: 8),
-                Text(label, style: AppTextStyles.captionMedium),
+                Text(
+                  label,
+                  style: AppTextStyles.captionMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),
@@ -266,8 +272,15 @@ class DashboardScreen extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('Live Market Rates', style: AppTextStyles.titleSmall),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                'Live Market Rates',
+                style: AppTextStyles.titleSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
@@ -364,28 +377,39 @@ class DashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('$symbol/INR', style: AppTextStyles.bodyMedium),
+                  Text(
+                    '$symbol/INR',
+                    style: AppTextStyles.bodyMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   Text(
                     '₹${_formatInrCompact(inrPrice)}',
                     style: AppTextStyles.caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
             // Change percentage
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: (isPositive ? AppColors.green : AppColors.red)
-                    .withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Text(
-                '${isPositive ? '+' : ''}${change24h.toStringAsFixed(2)}%',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isPositive ? AppColors.green : AppColors.red,
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: (isPositive ? AppColors.green : AppColors.red)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Text(
+                  '${isPositive ? '+' : ''}${change24h.toStringAsFixed(2)}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isPositive ? AppColors.green : AppColors.red,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
@@ -458,8 +482,15 @@ class DashboardScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Portfolio Analytics', style: AppTextStyles.bodyMedium),
-              const Spacer(),
+              Expanded(
+                child: Text(
+                  'Portfolio Analytics',
+                  style: AppTextStyles.bodyMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -521,55 +552,71 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Column(
-                children: [
-                  Text(
-                    'PROFIT',
-                    style: AppTextStyles.caption.copyWith(fontSize: 10),
-                  ),
-                  const SizedBox(height: 2),
-                  Builder(
-                    builder: (context) {
-                      final profit = portfolioSpots.isNotEmpty
-                          ? portfolioSpots.last.y - portfolioSpots.first.y
-                          : 0.0;
-                      return Text(
-                        '${profit >= 0 ? '+' : ''}₹${_formatNumber(profit.abs())}',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: profit >= 0 ? AppColors.green : AppColors.red,
-                        ),
-                      );
-                    },
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      'PROFIT',
+                      style: AppTextStyles.caption.copyWith(fontSize: 10),
+                    ),
+                    const SizedBox(height: 2),
+                    Builder(
+                      builder: (context) {
+                        final profit = portfolioSpots.isNotEmpty
+                            ? portfolioSpots.last.y - portfolioSpots.first.y
+                            : 0.0;
+                        return Text(
+                          '${profit >= 0 ? '+' : ''}₹${_formatNumber(profit.abs())}',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: profit >= 0
+                                ? AppColors.green
+                                : AppColors.red,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-              Column(
-                children: [
-                  Text(
-                    'HIGH',
-                    style: AppTextStyles.caption.copyWith(fontSize: 10),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '₹${_formatNumber(portfolioSpots.isNotEmpty ? portfolioSpots.map((s) => s.y).reduce((a, b) => a > b ? a : b) : 0)}',
-                    style: AppTextStyles.bodyMedium,
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      'HIGH',
+                      style: AppTextStyles.caption.copyWith(fontSize: 10),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '₹${_formatNumber(portfolioSpots.isNotEmpty ? portfolioSpots.map((s) => s.y).reduce((a, b) => a > b ? a : b) : 0)}',
+                      style: AppTextStyles.bodyMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
-              Column(
-                children: [
-                  Text(
-                    'LOW',
-                    style: AppTextStyles.caption.copyWith(fontSize: 10),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '₹${_formatNumber(portfolioSpots.isNotEmpty ? portfolioSpots.map((s) => s.y).reduce((a, b) => a < b ? a : b) : 0)}',
-                    style: AppTextStyles.bodyMedium,
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      'LOW',
+                      style: AppTextStyles.caption.copyWith(fontSize: 10),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '₹${_formatNumber(portfolioSpots.isNotEmpty ? portfolioSpots.map((s) => s.y).reduce((a, b) => a < b ? a : b) : 0)}',
+                      style: AppTextStyles.bodyMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -584,12 +631,18 @@ class DashboardScreen extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('Top Assets', style: AppTextStyles.titleSmall),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                'Top Assets',
+                style: AppTextStyles.titleSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             GestureDetector(
               onTap: () => context.go('/home/markets'),
               child: Text(
-                'VIEW ALL →',
+                'VIEW ALL',
                 style: AppTextStyles.captionMedium.copyWith(
                   color: AppColors.accent,
                 ),
@@ -616,8 +669,14 @@ class DashboardScreen extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('Recent Activity', style: AppTextStyles.titleSmall),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                'Recent Activity',
+                style: AppTextStyles.titleSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             GestureDetector(
               onTap: () => context.go('/home/activity'),
               child: Text(

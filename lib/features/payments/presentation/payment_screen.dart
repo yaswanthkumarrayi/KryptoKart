@@ -12,6 +12,7 @@ import '../../../shared/services/coingecko_service.dart';
 import '../../../shared/services/razorpay_payment_service.dart';
 import '../../../shared/models/transaction_model.dart';
 import '../../../core/service_locator.dart';
+import '../../../core/utils/wallet_display.dart';
 
 class PaymentScreen extends StatefulWidget {
   final Map<String, dynamic>? paymentData;
@@ -247,7 +248,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       children: [
                         Text(_recipientName, style: AppTextStyles.titleSmall),
                         Text(
-                          _recipientAddress,
+                          _isCrypto
+                              ? shortenWalletAddress(_recipientAddress)
+                              : _recipientAddress,
                           style: AppTextStyles.caption,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -326,54 +329,63 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(height: 30),
 
             // Amount input
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '₹',
-                  style: AppTextStyles.number.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 28,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '₹',
+                    style: AppTextStyles.number.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 28,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                SizedBox(
-                  width: 200,
-                  child: TextField(
-                    controller: _amountController,
-                    keyboardType: TextInputType.number,
-                    style: AppTextStyles.number.copyWith(fontSize: 48),
-                    textAlign: TextAlign.center,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: '0',
-                      hintStyle: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 48,
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      style: AppTextStyles.number.copyWith(fontSize: 48),
+                      textAlign: TextAlign.center,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: '0',
+                        hintStyle: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 48,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
             if (_isCrypto && _cryptoEquivalent > 0)
-              Text(
-                '≈ ${CurrencyFormatter.formatCrypto(_cryptoEquivalent)} ${_selectedCoin.toUpperCase().substring(0, 3)}',
-                style: AppTextStyles.caption.copyWith(color: AppColors.accent),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  '≈ ${CurrencyFormatter.formatCrypto(_cryptoEquivalent)} ${_selectedCoin.toUpperCase().substring(0, 3)}',
+                  style: AppTextStyles.caption.copyWith(color: AppColors.accent),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ).animate().fadeIn(),
 
             const SizedBox(height: 16),
 
-            // Quick amount buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            // Quick amount chips — Wrap avoids horizontal overflow on narrow phones
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [100, 500, 1000, 5000].map((amt) {
                 return GestureDetector(
                   onTap: () => _amountController.text = amt.toString(),
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 6,
@@ -395,7 +407,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
             GlassCard(
               padding: const EdgeInsets.all(12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(
                     Icons.shield_rounded,
@@ -403,13 +414,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     size: 16,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    _isCrypto
-                        ? 'BLOCKCHAIN VERIFIED TRANSFER'
-                        : 'UPI SECURE PAYMENT VIA RAZORPAY',
-                    style: AppTextStyles.caption.copyWith(
-                      fontSize: 10,
-                      letterSpacing: 0.5,
+                  Expanded(
+                    child: Text(
+                      _isCrypto
+                          ? 'BLOCKCHAIN VERIFIED TRANSFER'
+                          : 'UPI SECURE PAYMENT VIA RAZORPAY',
+                      style: AppTextStyles.caption.copyWith(
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -419,7 +434,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(height: 30),
 
             KkButton(
-              label: _isCrypto ? 'Send Crypto →' : 'Pay via Razorpay →',
+              label: _isCrypto ? 'Send Crypto' : 'Pay via Razorpay',
               onTap: _processPayment,
               isLoading: _isProcessing,
             ).animate().fadeIn(delay: 300.ms),

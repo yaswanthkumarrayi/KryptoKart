@@ -198,11 +198,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   child: Text(
                                     '${item.product.name} x${item.quantity}',
                                     style: AppTextStyles.body,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
+                                const SizedBox(width: 8),
                                 Text(
                                   CurrencyFormatter.formatInr(item.totalPrice),
                                   style: AppTextStyles.bodyMedium,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
@@ -268,8 +273,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           children: [
             Icon(icon, color: sel ? AppColors.accent : AppColors.textSecondary),
             const SizedBox(width: 12),
-            Text(label, style: AppTextStyles.bodyMedium),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.bodyMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
             Container(
               width: 20,
               height: 20,
