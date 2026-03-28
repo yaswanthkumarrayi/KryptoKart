@@ -64,18 +64,26 @@ router.post('/register', async (req, res) => {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
+    const startTime = Date.now();
     const { phone, password } = req.body;
+    console.log('[auth/login] request received', { phone });
 
     if (!phone || !password) {
       return res.status(400).json({ error: 'Phone and password are required' });
     }
 
+    const dbQueryStart = Date.now();
     const user = await User.findOne({ phone });
+    console.log(`[auth/login] DB query time: ${Date.now() - dbQueryStart}ms`);
+    
     if (!user) {
       return res.status(401).json({ error: 'Invalid phone or password' });
     }
 
+    const passwordCheckStart = Date.now();
     const isMatch = await user.comparePassword(password);
+    console.log(`[auth/login] Password check time: ${Date.now() - passwordCheckStart}ms`);
+    
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid phone or password' });
     }
@@ -86,7 +94,7 @@ router.post('/login', async (req, res) => {
       { expiresIn: '30d' }
     );
 
-    console.log('[auth/login] success', { userId: user._id, phone });
+    console.log('[auth/login] success', { userId: user._id, phone, totalTime: `${Date.now() - startTime}ms` });
 
     res.json({
       token,

@@ -14,6 +14,7 @@ class KkTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final int maxLines;
   final bool enabled;
+  final bool readOnly;
   final FocusNode? focusNode;
 
   const KkTextField({
@@ -29,6 +30,7 @@ class KkTextField extends StatelessWidget {
     this.keyboardType,
     this.maxLines = 1,
     this.enabled = true,
+    this.readOnly = false,
     this.focusNode,
   });
 
@@ -37,10 +39,7 @@ class KkTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label.toUpperCase(),
-          style: AppTextStyles.label,
-        ),
+        Text(label.toUpperCase(), style: AppTextStyles.label),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -50,6 +49,7 @@ class KkTextField extends StatelessWidget {
           keyboardType: keyboardType,
           maxLines: maxLines,
           enabled: enabled,
+          readOnly: readOnly,
           focusNode: focusNode,
           style: AppTextStyles.body,
           decoration: InputDecoration(
@@ -60,7 +60,12 @@ class KkTextField extends StatelessWidget {
                     child: prefix,
                   )
                 : null,
-            suffixIcon: suffix,
+            suffixIcon: suffix != null
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: suffix,
+                  )
+                : null,
             filled: true,
             fillColor: AppColors.surface,
             border: OutlineInputBorder(

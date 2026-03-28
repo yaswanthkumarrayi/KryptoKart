@@ -54,10 +54,24 @@ const PORT = process.env.PORT || 4000;
 const startServer = async () => {
   await connectDB();
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
+    const os = require('os');
+    const getLocalIP = () => {
+      const interfaces = os.networkInterfaces();
+      for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            return iface.address;
+          }
+        }
+      }
+      return 'localhost';
+    };
+    const localIP = getLocalIP();
     console.log(`\n🚀 KryptoKart Backend running on port ${PORT}`);
-    console.log(`📡 Health check: http://localhost:${PORT}/health`);
-    console.log(`🔗 API base: http://localhost:${PORT}/api\n`);
+    console.log(`📡 Health check: http://${localIP}:${PORT}/health`);
+    console.log(`🔗 API base: http://${localIP}:${PORT}/api`);
+    console.log(`🌐 Also accessible on: http://0.0.0.0:${PORT}\n`);
   });
 };
 
