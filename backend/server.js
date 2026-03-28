@@ -1,0 +1,80 @@
+require('dotenv').config();
+
+const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
+const connectDB = require('./config/db');
+
+// Route imports
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
+const transactionRoutes = require('./routes/transactions');
+const productRoutes = require('./routes/products');
+const cartRoutes = require('./routes/cart');
+const watchlistRoutes = require('./routes/watchlist');
+const paymentRoutes = require('./routes/payments');
+const settingsRoutes = require('./routes/settings');
+const walletRoutes = require('./routes/wallet');
+
+const app = express();
+
+// Middleware
+app.use(express.json({ limit: '5mb' }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+app.use(morgan('dev'));
+
+// Health check
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, service: 'KryptoKart Backend', timestamp: new Date().toISOString() });
+});
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/watchlist', watchlistRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/wallet', walletRoutes);
+
+// 404 handler
+app.use((_req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Global error handler
+app.use((err, _req, res, _next) => {
+  console.error('[Server Error]', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Start server
+const PORT = process.env.PORT || 4000;
+
+const startServer = async () => {
+  await connectDB();
+
+  app.listen(PORT, '0.0.0.0', () => {
+    const os = require('os');
+    const getLocalIP = () => {
+      const interfaces = os.networkInterfaces();
+      for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            return iface.address;
+          }
+        }
+      }
+      return 'localhost';
+    };
+    const localIP = getLocalIP();
+    console.log(`\n🚀 KryptoKart Backend running on port ${PORT}`);
+    console.log(`📡 Health check: http://${localIP}:${PORT}/health`);
+    console.log(`🔗 API base: http://${localIP}:${PORT}/api`);
+    console.log(`🌐 Also accessible on: http://0.0.0.0:${PORT}\n`);
+  });
+};
+
+startServer();
