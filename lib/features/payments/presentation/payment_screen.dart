@@ -12,6 +12,8 @@ import '../../../shared/services/razorpay_payment_service.dart';
 import '../../../shared/models/transaction_model.dart';
 import '../../../core/service_locator.dart';
 import '../../../core/utils/wallet_display.dart';
+import '../../../core/widgets/success_overlay.dart';
+import '../../../shared/services/wallet_service.dart';
 
 class PaymentScreen extends StatefulWidget {
   final Map<String, dynamic>? paymentData;
@@ -25,6 +27,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final _apiService = sl<ApiService>();
   final _coinGecko = sl<CoinGeckoService>();
   final _razorpayService = sl<RazorpayPaymentService>();
+  final _walletService = sl<WalletService>();
   final _amountController = TextEditingController();
   bool _isCrypto = false;
   bool _isProcessing = false;
@@ -158,7 +161,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _processCryptoPayment(double amount) async {
     try {
-      final txnId = 'TXN-${const Uuid().v4().substring(0, 8).toUpperCase()}';
+      // 1. Show waiting indicator / overlay
+      if (mounted) {
+        setState(() => _isProcessing = true);
+      }
+
+      // 2. Perform real transaction
+      final result = await _walletService.payWithCrypto(
+        cryptoAmount: _cryptoEquivalent,
+        receiverWallet: _recipientAddress.isNotEmpty ? _recipientAddress : null,
+      );
+
+      if (!result.success) {
+        throw Exception(result.errorMessage ?? 'Transaction failed');
+      }
+
+      // 3. Record transaction on backend
+      final txnId = 'TXN-${result.transactionHash?.substring(0, 8).toUpperCase() ?? const Uuid().v4().substring(0, 8).toUpperCase()}';
       final txnData = await _apiService.createTransaction({
         'txnId': txnId,
         'type': 'crypto',
@@ -168,11 +187,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'recipientName': _recipientName,
         'recipientAddress': _recipientAddress,
         'status': 'success',
+        'transactionHash': result.transactionHash,
       });
+
       final txn = TransactionModel.fromJson(txnData['transaction']);
+
       if (mounted) {
         setState(() => _isProcessing = false);
-        context.push('/receipt', extra: txn);
+        // 4. Show custom Success overlay
+        SuccessOverlay.show(
+          context,
+          title: 'Payment Successful!',
+          message:
+              'Successfully sent ${CurrencyFormatter.formatCrypto(_cryptoEquivalent)} ${_selectedCoin.toUpperCase().substring(0, 3)} to $_recipientName.\n\nTransaction ID: $txnId',
+        ).then((_) {
+          if (mounted) {
+            context.push('/receipt', extra: txn);
+          }
+        });
       }
     } catch (e) {
       if (mounted) {

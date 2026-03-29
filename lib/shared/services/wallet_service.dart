@@ -253,11 +253,17 @@ class WalletService {
 
       debugPrint('[WalletService] Sending transaction: $transaction');
 
-      // Open MetaMask to confirm the transaction
-      final deepLink = 'metamask://';
-      final parsed = Uri.parse(deepLink);
-      if (await canLaunchUrl(parsed)) {
-        await launchUrl(parsed, mode: LaunchMode.externalApplication);
+      // OPEN METAMASK: 
+      // Different OS/browsers handle deep links differently. 
+      // For mobile apps with WalletConnect, we often need to trigger the deep link again 
+      // after initiating the request to ensure the wallet actually comes to the foreground 
+      // to show the approval prompt.
+      final nativeLink = 'metamask://';
+      final nativeUri = Uri.parse(nativeLink);
+      
+      // We don't await this launch as it's fire-and-forget to bring MetaMask to focus
+      if (await canLaunchUrl(nativeUri)) {
+        launchUrl(nativeUri, mode: LaunchMode.externalApplication);
       }
 
       // Send the transaction request via WalletConnect

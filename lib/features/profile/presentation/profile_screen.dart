@@ -17,6 +17,7 @@ import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_event.dart';
 import '../../auth/bloc/auth_state.dart';
 import '../../scanner/presentation/scanner_screen.dart';
+import '../../../core/widgets/success_overlay.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -348,13 +349,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             walletService.connectedAddress!,
                           );
                           if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Wallet saved: ${shortenWalletAddress(walletService.connectedAddress)}',
-                                ),
-                                backgroundColor: context.palette.green,
-                              ),
+                            SuccessOverlay.show(
+                              ctx,
+                              title: 'Wallet Connected!',
+                              message:
+                                  'Your MetaMask wallet (${shortenWalletAddress(walletService.connectedAddress)}) has been linked to your KryptoKart account.',
                             );
                           }
                         } catch (e) {
