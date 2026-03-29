@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/widgets/kk_text_field.dart';
 import '../../../core/utils/validators.dart';
-import '../../../core/service_locator.dart';
-import '../../../shared/services/razorpay_payment_service.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -26,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isTestingPayment = false;
 
   @override
   void dispose() {
@@ -38,61 +34,28 @@ class _LoginScreenState extends State<LoginScreen> {
   void _onLogin() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthBloc>().add(
-        LoginRequested(
-          phone: _phoneController.text.trim(),
-          password: _passwordController.text,
-        ),
-      );
-    }
-  }
-
-  Future<void> _testRazorpay() async {
-    setState(() => _isTestingPayment = true);
-
-    try {
-      final razorpayService = sl<RazorpayPaymentService>();
-      final result = await razorpayService.startPayment(
-        amountPaise: 100,
-        name: 'KryptoKart Test',
-        description: 'Test payment - ₹1',
-      );
-
-      if (mounted) {
-        setState(() => _isTestingPayment = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              result.success
-                  ? '✅ Payment Success! ID: ${result.paymentId}'
-                  : '❌ ${result.message}',
+            LoginRequested(
+              phone: _phoneController.text.trim(),
+              password: _passwordController.text,
             ),
-            backgroundColor: result.success ? AppColors.green : AppColors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isTestingPayment = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red),
-        );
-      }
+          );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
-        listener: (context, state) {
+        listener: (ctx, state) {
           if (state is Authenticated) {
-            context.go('/home');
+            ctx.go('/home');
           } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(ctx).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: AppColors.red,
+                backgroundColor: ctx.palette.red,
               ),
             );
           }
@@ -105,49 +68,40 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 60),
-
-                  // Logo
                   Container(
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      gradient: AppColors.accentGradient,
+                      gradient: p.accentGradient,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.3),
+                          color: p.accent.withValues(alpha: 0.3),
                           blurRadius: 20,
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.shield_rounded,
                       size: 44,
-                      color: AppColors.background,
+                      color: p.textOnAccentButton,
                     ),
                   ).animate().scale(duration: 600.ms, curve: Curves.easeOut),
-
                   const SizedBox(height: 20),
-
                   Text(
                     'KryptoKart',
-                    style: AppTextStyles.display.copyWith(
-                      color: AppColors.accent,
+                    style: t.display.copyWith(
+                      color: p.accent,
                     ),
                   ).animate().fadeIn(delay: 200.ms),
-
                   const SizedBox(height: 8),
-
                   Text(
                     'Your unified fintech ecosystem',
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.textSecondary,
+                    style: t.body.copyWith(
+                      color: p.textSecondary,
                     ),
                   ).animate().fadeIn(delay: 300.ms),
-
                   const SizedBox(height: 40),
-
-                  // Login form
                   GlassCard(
                     child: Column(
                       children: [
@@ -163,10 +117,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.surface2,
+                              color: p.surface2,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text('+91', style: AppTextStyles.bodyMedium),
+                            child: Text('+91', style: t.bodyMedium),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -181,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               _obscurePassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: AppColors.textSecondary,
+                              color: p.textSecondary,
                             ),
                             onPressed: () => setState(
                               () => _obscurePassword = !_obscurePassword,
@@ -195,8 +149,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             onPressed: () {},
                             child: Text(
                               'Forgot PIN?',
-                              style: AppTextStyles.caption.copyWith(
-                                color: AppColors.accent,
+                              style: t.caption.copyWith(
+                                color: p.accent,
                               ),
                             ),
                           ),
@@ -204,10 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
-
                   const SizedBox(height: 24),
-
-                  // Login button
                   BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
                       return KkButton(
@@ -217,43 +168,33 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     },
                   ).animate().fadeIn(delay: 500.ms),
-
                   const SizedBox(height: 20),
-
-                  // Divider
                   Row(
                     children: [
-                      const Expanded(child: Divider(color: AppColors.border)),
+                      Expanded(child: Divider(color: p.border)),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('OR', style: AppTextStyles.caption),
+                        child: Text('OR', style: t.caption),
                       ),
-                      const Expanded(child: Divider(color: AppColors.border)),
+                      Expanded(child: Divider(color: p.border)),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Register button
                   KkButton(
                     label: 'Create Account',
                     onTap: () => context.push('/register'),
                     outlined: true,
                   ).animate().fadeIn(delay: 600.ms),
-
                   const SizedBox(height: 20),
-
-                  // Skip button
                   TextButton(
                     onPressed: () => context.go('/home'),
                     child: Text(
                       'Skip for Login Now',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.accent,
+                      style: t.caption.copyWith(
+                        color: p.accent,
                       ),
                     ),
                   ).animate().fadeIn(delay: 700.ms),
-
                   const SizedBox(height: 40),
                 ],
               ),

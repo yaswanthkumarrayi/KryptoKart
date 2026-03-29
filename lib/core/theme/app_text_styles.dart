@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
+/// Legacy static styles (dark palette). Prefer [BuildContext.txt] for theme-aware text.
 class AppTextStyles {
   AppTextStyles._();
 

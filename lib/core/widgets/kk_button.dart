@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
+import '../theme/kk_theme_context.dart';
 
 class KkButton extends StatelessWidget {
   final String label;
@@ -24,6 +23,7 @@ class KkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     if (outlined) {
       return SizedBox(
         width: width ?? double.infinity,
@@ -31,12 +31,12 @@ class KkButton extends StatelessWidget {
         child: OutlinedButton(
           onPressed: isLoading ? null : onTap,
           style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: AppColors.accent, width: 1.5),
+            side: BorderSide(color: p.accent, width: 1.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
           ),
-          child: _buildContent(isOutlined: true),
+          child: _buildContent(context, isOutlined: true),
         ),
       );
     }
@@ -47,7 +47,7 @@ class KkButton extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: onTap != null && !isLoading
-              ? AppColors.accentGradient
+              ? p.accentGradient
               : LinearGradient(
                   colors: [Colors.grey.shade700, Colors.grey.shade800],
                 ),
@@ -55,7 +55,7 @@ class KkButton extends StatelessWidget {
           boxShadow: onTap != null && !isLoading
               ? [
                   BoxShadow(
-                    color: AppColors.accent.withValues(alpha: 0.3),
+                    color: p.accent.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -71,20 +71,22 @@ class KkButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
           ),
-          child: _buildContent(),
+          child: _buildContent(context),
         ),
       ),
     );
   }
 
-  Widget _buildContent({bool isOutlined = false}) {
+  Widget _buildContent(BuildContext context, {bool isOutlined = false}) {
+    final p = context.palette;
+    final t = context.txt;
     if (isLoading) {
       return SizedBox(
         width: 24,
         height: 24,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: isOutlined ? AppColors.accent : AppColors.background,
+          color: isOutlined ? p.accent : p.textOnAccentButton,
         ),
       );
     }
@@ -97,15 +99,15 @@ class KkButton extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: isOutlined ? AppColors.accent : AppColors.background,
+            color: isOutlined ? p.accent : p.textOnAccentButton,
           ),
           const SizedBox(width: 8),
         ],
         Flexible(
           child: Text(
             label,
-            style: AppTextStyles.button.copyWith(
-              color: isOutlined ? AppColors.accent : AppColors.background,
+            style: t.button.copyWith(
+              color: isOutlined ? p.accent : p.textOnAccentButton,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,

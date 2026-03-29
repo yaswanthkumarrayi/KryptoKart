@@ -3,8 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/error_widget.dart';
@@ -16,12 +15,14 @@ class MarketsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(
           'Markets',
-          style: AppTextStyles.title.copyWith(color: AppColors.accent),
+          style: t.title.copyWith(color: p.accent),
         ),
         centerTitle: false,
       ),
@@ -55,42 +56,40 @@ class MarketsScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, MarketsLoaded state) {
+    final p = context.palette;
+    final t = context.txt;
     final featuredCoin = state.coins.isNotEmpty ? state.coins[0] : null;
     final isPositive = featuredCoin != null && state.chartData.isNotEmpty
         ? state.chartData.last.y > state.chartData.first.y
         : true;
-    final chartColor = isPositive ? AppColors.green : AppColors.red;
+    final chartColor = isPositive ? p.green : p.red;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search bar
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: p.surface,
               borderRadius: BorderRadius.circular(50),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: p.border),
             ),
             child: TextField(
               onChanged: (q) => context.read<MarketsBloc>().add(SearchCoins(q)),
-              style: AppTextStyles.body,
-              decoration: const InputDecoration(
+              style: t.body,
+              decoration: InputDecoration(
                 hintText: 'Search markets...',
-                prefixIcon: Icon(Icons.search, color: AppColors.textSecondary),
+                prefixIcon: Icon(Icons.search, color: p.textSecondary),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
+                contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 14,
                 ),
               ),
             ),
           ).animate().fadeIn(),
-
           const SizedBox(height: 16),
-
-          // Featured Asset Card
           if (featuredCoin != null)
             GlassCard(
               padding: const EdgeInsets.all(20),
@@ -102,13 +101,13 @@ class MarketsScreen extends StatelessWidget {
                     children: [
                       Text(
                         'FEATURED ASSET',
-                        style: AppTextStyles.label.copyWith(
-                          color: AppColors.accent,
+                        style: t.label.copyWith(
+                          color: p.accent,
                         ),
                       ),
                       Text(
                         featuredCoin.priceFormatted,
-                        style: AppTextStyles.numberSmall,
+                        style: t.numberSmall,
                       ),
                     ],
                   ),
@@ -118,7 +117,7 @@ class MarketsScreen extends StatelessWidget {
                       Expanded(
                         child: Text(
                           featuredCoin.name,
-                          style: AppTextStyles.display,
+                          style: t.display,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -129,11 +128,8 @@ class MarketsScreen extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              (featuredCoin.isPositive
-                                      ? AppColors.green
-                                      : AppColors.red)
-                                  .withValues(alpha: 0.15),
+                          color: (featuredCoin.isPositive ? p.green : p.red)
+                              .withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(50),
                         ),
                         child: Text(
@@ -141,9 +137,7 @@ class MarketsScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: featuredCoin.isPositive
-                                ? AppColors.green
-                                : AppColors.red,
+                            color: featuredCoin.isPositive ? p.green : p.red,
                           ),
                         ),
                       ),
@@ -151,7 +145,7 @@ class MarketsScreen extends StatelessWidget {
                   ),
                   Text(
                     '${featuredCoin.symbol} / INR',
-                    style: AppTextStyles.caption,
+                    style: t.caption,
                   ),
                   const SizedBox(height: 16),
                   if (state.chartData.isNotEmpty)
@@ -192,24 +186,18 @@ class MarketsScreen extends StatelessWidget {
                 ],
               ),
             ).animate().fadeIn(delay: 100.ms),
-
           const SizedBox(height: 16),
-
-          // Market Overview Header
           Row(
             children: [
-              Text('Market Overview', style: AppTextStyles.titleSmall),
+              Text('Market Overview', style: t.titleSmall),
               const Spacer(),
               Text(
                 '${state.filteredCoins.length} coins',
-                style: AppTextStyles.caption,
+                style: t.caption,
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
-          // Coin list
           ...state.filteredCoins.map(
             (coin) => CoinListTile(
               coin: coin,
@@ -219,13 +207,11 @@ class MarketsScreen extends StatelessWidget {
                   context.read<MarketsBloc>().add(ToggleWatchlist(coin.id)),
             ),
           ),
-
           if (state.filteredCoins.isEmpty)
             const KkEmptyWidget(
               message: 'No coins match your search',
               icon: Icons.search_off,
             ),
-
           const SizedBox(height: 80),
         ],
       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
+import '../../core/theme/kk_palette.dart';
+import '../../core/theme/kk_theme_context.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/date_formatter.dart';
 import '../models/transaction_model.dart';
@@ -17,49 +17,49 @@ class TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
+    final iconColor = _iconColor(p);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.85),
+          color: p.surface.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: p.border),
         ),
         child: Row(
           children: [
-            // Category icon
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: _iconColor.withValues(alpha: 0.15),
+                color: iconColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(_iconData, color: _iconColor, size: 22),
+              child: Icon(_iconData, color: iconColor, size: 22),
             ),
             const SizedBox(width: 12),
-            // Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     transaction.recipientName,
-                    style: AppTextStyles.bodyMedium,
+                    style: t.bodyMedium,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     DateFormatter.formatRelative(transaction.createdAt),
-                    style: AppTextStyles.caption,
+                    style: t.caption,
                   ),
                 ],
               ),
             ),
-            // Amount
             Flexible(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -67,8 +67,8 @@ class TransactionTile extends StatelessWidget {
                 children: [
                   Text(
                     '- ${CurrencyFormatter.formatInr(transaction.amountInr)}',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.red,
+                    style: t.bodyMedium.copyWith(
+                      color: p.red,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
@@ -78,7 +78,7 @@ class TransactionTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     transaction.type.toUpperCase(),
-                    style: AppTextStyles.caption.copyWith(fontSize: 10),
+                    style: t.caption.copyWith(fontSize: 10),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -104,16 +104,16 @@ class TransactionTile extends StatelessWidget {
     }
   }
 
-  Color get _iconColor {
+  Color _iconColor(KkPalette p) {
     switch (transaction.type) {
       case 'upi':
-        return AppColors.accentBlue;
+        return p.accentBlue;
       case 'crypto':
-        return AppColors.purple;
+        return p.purple;
       case 'shopping':
-        return AppColors.green;
+        return p.green;
       default:
-        return AppColors.textSecondary;
+        return p.textSecondary;
     }
   }
 }

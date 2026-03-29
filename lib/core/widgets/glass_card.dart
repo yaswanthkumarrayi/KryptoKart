@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/kk_theme_context.dart';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -23,6 +23,7 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -31,12 +32,12 @@ class GlassCard extends StatelessWidget {
         margin: margin ?? const EdgeInsets.symmetric(vertical: 6),
         padding: padding ?? const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.85),
+          color: p.surface.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(color: AppColors.border, width: 1),
-          boxShadow: const [
+          border: Border.all(color: p.border, width: 1),
+          boxShadow: [
             BoxShadow(
-              color: AppColors.accentGlow,
+              color: p.accentGlow,
               blurRadius: 20,
               spreadRadius: 0,
             ),

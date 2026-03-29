@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -94,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -117,7 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.border,
+                      color: context.palette.border,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -125,16 +124,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.flag_rounded,
-                      color: AppColors.red,
+                      color: context.palette.red,
                       size: 24,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Report an Issue',
-                        style: AppTextStyles.titleSmall,
+                        style: context.txt.titleSmall,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -144,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 16),
                 Text(
                   'Describe the issue you are facing. Our team will get back to you within 24 hours.',
-                  style: AppTextStyles.caption,
+                  style: context.txt.caption,
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -152,23 +151,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   maxLines: 5,
                   decoration: InputDecoration(
                     hintText: 'Write your message here...',
-                    hintStyle: AppTextStyles.caption,
+                    hintStyle: context.txt.caption,
                     filled: true,
-                    fillColor: AppColors.surface2,
+                    fillColor: context.palette.surface2,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.border),
+                      borderSide: BorderSide(color: context.palette.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.border),
+                      borderSide: BorderSide(color: context.palette.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.accent),
+                      borderSide: BorderSide(color: context.palette.accent),
                     ),
                   ),
-                  style: AppTextStyles.body,
+                  style: context.txt.body,
                 ),
                 const SizedBox(height: 20),
                 KkButton(
@@ -179,9 +178,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onTap: () async {
                     if (messageController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please write a message'),
-                          backgroundColor: AppColors.red,
+                        SnackBar(
+                          content: const Text('Please write a message'),
+                          backgroundColor: context.palette.red,
                         ),
                       );
                       return;
@@ -201,11 +200,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     if (mounted) {
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
+                        SnackBar(
+                          content: const Text(
                             'Report submitted! We\'ll get back to you soon.',
                           ),
-                          backgroundColor: AppColors.green,
+                          backgroundColor: context.palette.green,
                         ),
                       );
                     }
@@ -222,7 +221,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showUpiDetails() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -237,27 +236,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.palette.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(height: 20),
-              const Icon(Icons.send_rounded, color: AppColors.accent, size: 40),
+              Icon(Icons.send_rounded, color: context.palette.accent, size: 40),
               const SizedBox(height: 12),
-              Text('UPI Details', style: AppTextStyles.titleSmall),
+              Text('UPI Details', style: context.txt.titleSmall),
               const SizedBox(height: 20),
               GlassCard(
                 child: Column(
                   children: [
                     _detailRow('Name', _user?.name ?? 'N/A'),
-                    const Divider(color: AppColors.border),
+                    Divider(color: context.palette.border),
                     _detailRow('Phone', _user?.phone ?? 'N/A'),
-                    const Divider(color: AppColors.border),
+                    Divider(color: context.palette.border),
                     _detailRow('UPI ID', () {
                       final upi = _user?.upiId ?? '';
                       return upi.isEmpty ? 'Not set' : upi;
                     }()),
-                    const Divider(color: AppColors.border),
+                    Divider(color: context.palette.border),
                     _detailRow(
                       'Balance',
                       CurrencyFormatter.formatInr(_user?.upiBalance ?? 0),
@@ -278,7 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -294,20 +293,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.palette.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Icon(
+                Icon(
                   Icons.account_balance_wallet_rounded,
-                  color: AppColors.accent,
+                  color: context.palette.accent,
                   size: 40,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Connected Wallets',
-                  style: AppTextStyles.titleSmall,
+                  style: context.txt.titleSmall,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -353,7 +352,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               content: Text(
                                 'Wallet saved: ${shortenWalletAddress(walletService.connectedAddress)}',
                               ),
-                              backgroundColor: AppColors.green,
+                              backgroundColor: context.palette.green,
                             ),
                           );
                         }
@@ -362,7 +361,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ScaffoldMessenger.of(ctx).showSnackBar(
                             SnackBar(
                               content: Text('Could not save wallet to account: $e'),
-                              backgroundColor: AppColors.red,
+                              backgroundColor: context.palette.red,
                             ),
                           );
                         }
@@ -392,7 +391,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             flex: 2,
             child: Text(
               label,
-              style: AppTextStyles.caption,
+              style: context.txt.caption,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -402,7 +401,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             flex: 3,
             child: Text(
               value,
-              style: AppTextStyles.bodyMedium,
+              style: context.txt.bodyMedium,
               textAlign: TextAlign.end,
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
@@ -421,14 +420,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Icon(
             icon,
-            color: connected ? AppColors.accent : AppColors.textSecondary,
+            color: connected ? context.palette.accent : context.palette.textSecondary,
             size: 20,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               name,
-              style: AppTextStyles.bodyMedium,
+              style: context.txt.bodyMedium,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -436,15 +435,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: (connected ? AppColors.green : AppColors.textSecondary)
+              color: (connected ? context.palette.green : context.palette.textSecondary)
                   .withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(50),
             ),
             child: Text(
               connected ? 'Connected' : 'Off',
-              style: AppTextStyles.caption.copyWith(
+              style: context.txt.caption.copyWith(
                 fontSize: 10,
-                color: connected ? AppColors.green : AppColors.textSecondary,
+                color: connected ? context.palette.green : context.palette.textSecondary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -470,11 +469,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: _isLoading && _user == null
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.accent),
+          ? Center(
+              child: CircularProgressIndicator(color: context.palette.accent),
             )
           : RefreshIndicator(
-              color: AppColors.accent,
+              color: context.palette.accent,
               onRefresh: () async => _loadProfile(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -488,26 +487,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           CircleAvatar(
                             radius: 40,
-                            backgroundColor: AppColors.surface2,
+                            backgroundColor: context.palette.surface2,
                             child: Text(
                               u.name.isNotEmpty ? u.name[0].toUpperCase() : 'U',
-                              style: AppTextStyles.display.copyWith(
-                                color: AppColors.accent,
+                              style: context.txt.display.copyWith(
+                                color: context.palette.accent,
                               ),
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Text(u.name, style: AppTextStyles.title),
+                          Text(u.name, style: context.txt.title),
                           Text(
                             u.phone.isEmpty ? '—' : u.phone,
-                            style: AppTextStyles.caption,
+                            style: context.txt.caption,
                           ),
                           if (u.upiId.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Text(
                               u.upiId,
-                              style: AppTextStyles.captionMedium.copyWith(
-                                color: AppColors.accent,
+                              style: context.txt.captionMedium.copyWith(
+                                color: context.palette.accent,
                               ),
                             ),
                           ],
@@ -572,12 +571,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Icons.flag_rounded,
                       'Report',
                       _showReportDialog,
-                      color: AppColors.yellow,
+                      color: context.palette.yellow,
                     ),
                     _menuItem(Icons.logout_rounded, 'Logout', () {
                       context.read<AuthBloc>().add(LogoutRequested());
                       context.go('/login');
-                    }, color: AppColors.red),
+                    }, color: context.palette.red),
 
                     const SizedBox(height: 80),
                   ],
@@ -594,7 +593,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(
             value,
-            style: AppTextStyles.bodyMedium.copyWith(
+            style: context.txt.bodyMedium.copyWith(
               fontWeight: FontWeight.bold,
             ),
             maxLines: 1,
@@ -604,7 +603,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 2),
           Text(
             label,
-            style: AppTextStyles.caption.copyWith(fontSize: 10),
+            style: context.txt.caption.copyWith(fontSize: 10),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
@@ -626,23 +625,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.palette.border),
         ),
         child: Row(
           children: [
-            Icon(icon, color: color ?? AppColors.accent, size: 22),
+            Icon(icon, color: color ?? context.palette.accent, size: 22),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
                 label,
-                style: AppTextStyles.bodyMedium.copyWith(color: color),
+                style: context.txt.bodyMedium.copyWith(color: color),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right,
-              color: AppColors.textSecondary,
+              color: context.palette.textSecondary,
               size: 20,
             ),
           ],
@@ -690,16 +689,16 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Product deleted'),
-            backgroundColor: AppColors.green,
+          SnackBar(
+            content: const Text('Product deleted'),
+            backgroundColor: context.palette.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: context.palette.red),
         );
       }
     }
@@ -730,8 +729,8 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.accent),
+          ? Center(
+              child: CircularProgressIndicator(color: context.palette.accent),
             )
           : _products.isEmpty
           ? Center(
@@ -741,13 +740,13 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
                   Icon(
                     Icons.inventory_2_outlined,
                     size: 64,
-                    color: AppColors.textSecondary.withValues(alpha: 0.4),
+                    color: context.palette.textSecondary.withValues(alpha: 0.4),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No products yet',
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.textSecondary,
+                    style: context.txt.body.copyWith(
+                      color: context.palette.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -777,7 +776,7 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
               ),
             )
           : RefreshIndicator(
-              color: AppColors.accent,
+              color: context.palette.accent,
               onRefresh: () async => _load(),
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -791,18 +790,18 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
                       return await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          backgroundColor: AppColors.surface,
+                          backgroundColor: context.palette.surface,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
                           title: Text(
                             'Delete ${p.name}?',
-                            style: AppTextStyles.titleSmall,
+                            style: context.txt.titleSmall,
                           ),
                           content: Text(
                             'This cannot be undone.',
-                            style: AppTextStyles.body.copyWith(
-                              color: AppColors.textSecondary,
+                            style: context.txt.body.copyWith(
+                              color: context.palette.textSecondary,
                             ),
                           ),
                           actions: [
@@ -814,7 +813,7 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
                               onPressed: () => Navigator.pop(ctx, true),
                               child: Text(
                                 'Delete',
-                                style: TextStyle(color: AppColors.red),
+                                style: TextStyle(color: context.palette.red),
                               ),
                             ),
                           ],
@@ -827,18 +826,18 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
                       padding: const EdgeInsets.only(right: 20),
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.red.withValues(alpha: 0.15),
+                        color: context.palette.red.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(Icons.delete, color: AppColors.red),
+                      child: Icon(Icons.delete, color: context.palette.red),
                     ),
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: context.palette.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: context.palette.border),
                       ),
                       child: Row(
                         children: [
@@ -846,12 +845,12 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: AppColors.surface2,
+                              color: context.palette.surface2,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.inventory_2_outlined,
-                              color: AppColors.textSecondary,
+                              color: context.palette.textSecondary,
                               size: 22,
                             ),
                           ),
@@ -862,13 +861,13 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
                               children: [
                                 Text(
                                   p.name,
-                                  style: AppTextStyles.bodyMedium,
+                                  style: context.txt.bodyMedium,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
                                   'Barcode: ${p.barcode}  •  ${p.category}',
-                                  style: AppTextStyles.caption,
+                                  style: context.txt.caption,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -878,8 +877,8 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
                           Flexible(
                             child: Text(
                               CurrencyFormatter.formatInr(p.priceInr),
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.accent,
+                              style: context.txt.bodyMedium.copyWith(
+                                color: context.palette.accent,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -895,8 +894,8 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,
-        backgroundColor: AppColors.accent,
-        child: const Icon(Icons.add, color: AppColors.background),
+        backgroundColor: context.palette.accent,
+        child: Icon(Icons.add, color: context.palette.textOnAccentButton),
       ),
     );
   }
@@ -909,7 +908,7 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -926,7 +925,7 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Add Product', style: AppTextStyles.titleSmall),
+              Text('Add Product', style: context.txt.titleSmall),
             const SizedBox(height: 16),
             TextField(
               controller: nameC,
@@ -949,9 +948,9 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.qr_code_scanner,
-                    color: AppColors.accent,
+                    color: context.palette.accent,
                   ),
                   onPressed: () {
                     Navigator.pop(ctx);
@@ -994,7 +993,7 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Error: $e'),
-                        backgroundColor: AppColors.red,
+                        backgroundColor: context.palette.red,
                       ),
                     );
                 }

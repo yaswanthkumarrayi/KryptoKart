@@ -5,8 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:vibration/vibration.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/utils/qr_classifier.dart';
@@ -119,9 +118,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
       // No QR found in image
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No QR code or barcode found in the selected image'),
-            backgroundColor: AppColors.yellow,
+          SnackBar(
+            content: const Text('No QR code or barcode found in the selected image'),
+            backgroundColor: context.palette.yellow,
           ),
         );
       }
@@ -131,7 +130,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to scan image: $e'),
-            backgroundColor: AppColors.red,
+            backgroundColor: context.palette.red,
           ),
         );
       }
@@ -183,7 +182,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -201,7 +200,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             children: [
             Container(
               width: 40, height: 4,
-              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: context.palette.border, borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(height: 20),
 
@@ -209,26 +208,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
             Container(
               width: 70, height: 70,
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
+                color: context.palette.accent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.accent, size: 36),
+              child: Icon(Icons.qr_code_scanner_rounded, color: context.palette.accent, size: 36),
             ),
             const SizedBox(height: 14),
-            Text('QR Scanned!', style: AppTextStyles.titleSmall),
+            Text('QR Scanned!', style: context.txt.titleSmall),
             const SizedBox(height: 6),
             Text(
               recipientName,
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent),
+              style: context.txt.bodyMedium.copyWith(color: context.palette.accent),
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             if (amount.isNotEmpty)
-              Text('Amount: ₹$amount', style: AppTextStyles.caption),
+              Text('Amount: ₹$amount', style: context.txt.caption),
             const SizedBox(height: 24),
 
-            Text('Choose payment method', style: AppTextStyles.bodyMedium),
+            Text('Choose payment method', style: context.txt.bodyMedium),
             const SizedBox(height: 16),
 
             // UPI Option
@@ -236,7 +235,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               icon: Icons.send_rounded,
               title: 'Pay via UPI',
               subtitle: 'Razorpay secure payment',
-              color: AppColors.accentBlue,
+              color: context.palette.accentBlue,
               onTap: () {
                 Navigator.pop(ctx);
                 context.push('/payment', extra: {
@@ -256,7 +255,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               subtitle: hasWallet
                   ? 'Using ${shortenWalletAddress(walletAddress)}'
                   : 'Connect a wallet first',
-              color: AppColors.accent,
+              color: context.palette.accent,
               enabled: hasWallet,
               onTap: hasWallet
                   ? () {
@@ -277,7 +276,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 Navigator.pop(ctx);
                 _resetScanner();
               },
-              child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+              child: Text('Cancel', style: context.txt.bodyMedium.copyWith(color: context.palette.textSecondary)),
             ),
           ],
         ),
@@ -302,9 +301,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: enabled ? AppColors.surface : AppColors.surface2.withValues(alpha: 0.5),
+          color: enabled ? context.palette.surface : context.palette.surface2.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: enabled ? color.withValues(alpha: 0.4) : AppColors.border),
+          border: Border.all(color: enabled ? color.withValues(alpha: 0.4) : context.palette.border),
         ),
         child: Row(
           children: [
@@ -314,19 +313,19 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 color: color.withValues(alpha: enabled ? 0.15 : 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: enabled ? color : AppColors.textSecondary, size: 24),
+              child: Icon(icon, color: enabled ? color : context.palette.textSecondary, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.bodyMedium.copyWith(
-                    color: enabled ? AppColors.textPrimary : AppColors.textSecondary,
+                  Text(title, style: context.txt.bodyMedium.copyWith(
+                    color: enabled ? context.palette.textPrimary : context.palette.textSecondary,
                   )),
                   Text(
                     subtitle,
-                    style: AppTextStyles.caption.copyWith(fontSize: 11),
+                    style: context.txt.caption.copyWith(fontSize: 11),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -334,7 +333,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               ),
             ),
             Icon(Icons.arrow_forward_ios, size: 14,
-                color: enabled ? color : AppColors.textSecondary),
+                color: enabled ? color : context.palette.textSecondary),
           ],
         ),
       ),
@@ -354,7 +353,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   void _showProductDialog(ProductModel product) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -365,27 +364,27 @@ class _ScannerScreenState extends State<ScannerScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
             Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
+              decoration: BoxDecoration(color: context.palette.border, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
             Container(
               width: 80, height: 80,
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
+                color: context.palette.accent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20)),
-              child: const Icon(Icons.check_circle_rounded, color: AppColors.accent, size: 48),
+              child: Icon(Icons.check_circle_rounded, color: context.palette.accent, size: 48),
             ),
             const SizedBox(height: 16),
-            Text('Product Found!', style: AppTextStyles.titleSmall),
+            Text('Product Found!', style: context.txt.titleSmall),
             const SizedBox(height: 20),
             GlassCard(
               child: Column(children: [
                 _detailRow('Name', product.name),
-                const Divider(color: AppColors.border),
+                Divider(color: context.palette.border),
                 _detailRow('Price', CurrencyFormatter.formatInr(product.priceInr)),
-                const Divider(color: AppColors.border),
+                Divider(color: context.palette.border),
                 _detailRow('Barcode', product.barcode),
                 if (product.category.isNotEmpty) ...[
-                  const Divider(color: AppColors.border),
+                  Divider(color: context.palette.border),
                   _detailRow('Category', product.category),
                 ],
               ]),
@@ -400,13 +399,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       if (mounted) {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${product.name} added to cart!'), backgroundColor: AppColors.green));
+                          SnackBar(content: Text('${product.name} added to cart!'), backgroundColor: context.palette.green));
                         _resetScanner();
                       }
                     } catch (e) {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Failed to add to cart'), backgroundColor: AppColors.red));
+                          SnackBar(content: const Text('Failed to add to cart'), backgroundColor: context.palette.red));
                       }
                     }
                   }),
@@ -427,7 +426,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () { Navigator.pop(ctx); _resetScanner(); },
-              child: Text('Scan Again', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+              child: Text('Scan Again', style: context.txt.bodyMedium.copyWith(color: context.palette.textSecondary)),
             ),
             ],
           ),
@@ -442,7 +441,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -453,22 +452,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
             Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
+              decoration: BoxDecoration(color: context.palette.border, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
             Container(
               width: 80, height: 80,
               decoration: BoxDecoration(
-                color: AppColors.yellow.withValues(alpha: 0.1),
+                color: context.palette.yellow.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20)),
-              child: const Icon(Icons.help_outline_rounded, color: AppColors.yellow, size: 48),
+              child: Icon(Icons.help_outline_rounded, color: context.palette.yellow, size: 48),
             ),
             const SizedBox(height: 10),
-            Text('Product Not Found', style: AppTextStyles.titleSmall),
+            Text('Product Not Found', style: context.txt.titleSmall),
             const SizedBox(height: 8),
-            Text('Barcode: $barcode', style: AppTextStyles.caption),
+            Text('Barcode: $barcode', style: context.txt.caption),
             const SizedBox(height: 16),
             Text('Would you like to add this product?',
-                style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+                style: context.txt.body.copyWith(color: context.palette.textSecondary)),
             const SizedBox(height: 20),
             TextField(controller: nameC, decoration: const InputDecoration(labelText: 'Product Name')),
             const SizedBox(height: 12),
@@ -489,13 +488,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       if (mounted) {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${nameC.text} added!'), backgroundColor: AppColors.green));
+                          SnackBar(content: Text('${nameC.text} added!'), backgroundColor: context.palette.green));
                         _resetScanner();
                       }
                     } catch (e) {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red));
+                          SnackBar(content: Text('Error: $e'), backgroundColor: context.palette.red));
                       }
                     }
                   }),
@@ -527,7 +526,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             flex: 2,
             child: Text(
               label,
-              style: AppTextStyles.caption,
+              style: context.txt.caption,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -537,7 +536,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             flex: 3,
             child: Text(
               value,
-              style: AppTextStyles.bodyMedium,
+              style: context.txt.bodyMedium,
               textAlign: TextAlign.end,
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
@@ -563,23 +562,23 @@ class _ScannerScreenState extends State<ScannerScreen> {
               onDetect: _onDetect,
               errorBuilder: (context, error, widget) {
                 return Container(
-                  color: AppColors.background,
+                  color: context.palette.background,
                   child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.camera_alt_outlined, size: 64, color: AppColors.textSecondary),
+                    Icon(Icons.camera_alt_outlined, size: 64, color: context.palette.textSecondary),
                     const SizedBox(height: 16),
-                    Text('Camera not available', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+                    Text('Camera not available', style: context.txt.body.copyWith(color: context.palette.textSecondary)),
                   ])),
                 );
               },
             )
           else
             Container(
-              color: AppColors.background,
+              color: context.palette.background,
               child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.qr_code_scanner_rounded, size: 80, color: AppColors.textSecondary),
+                Icon(Icons.qr_code_scanner_rounded, size: 80, color: context.palette.textSecondary),
                 const SizedBox(height: 16),
-                Text('Camera Preview', style: AppTextStyles.titleSmall),
-                Text('Requires physical device', style: AppTextStyles.caption),
+                Text('Camera Preview', style: context.txt.titleSmall),
+                Text('Requires physical device', style: context.txt.caption),
               ])),
             ),
 
@@ -592,7 +591,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               width: 260, height: 260,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.accent.withValues(alpha: 0.3), width: 2),
+                border: Border.all(color: context.palette.accent.withValues(alpha: 0.3), width: 2),
               ),
               child: Stack(children: [..._buildCorners(), _buildScanLine()]),
             )
@@ -620,7 +619,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   },
                 ),
                 const SizedBox(width: 8),
-                Text('Scan QR / Barcode', style: AppTextStyles.titleSmall),
+                Text('Scan QR / Barcode', style: context.txt.titleSmall),
               ]),
             ),
           ),
@@ -631,9 +630,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
               decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.95),
+                color: context.palette.surface.withValues(alpha: 0.95),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: const Border(top: BorderSide(color: AppColors.border)),
+                border: Border(top: BorderSide(color: context.palette.border)),
               ),
               child: SafeArea(
                 child: Row(
@@ -666,16 +665,16 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 48, height: 48,
                       child: CircularProgressIndicator(
-                        color: AppColors.accent, strokeWidth: 3),
+                        color: context.palette.accent, strokeWidth: 3),
                     ),
                     const SizedBox(height: 20),
-                    Text('Scanning image...', style: AppTextStyles.bodyMedium),
+                    Text('Scanning image...', style: context.txt.bodyMedium),
                     const SizedBox(height: 6),
                     Text('Looking for QR codes and barcodes',
-                        style: AppTextStyles.caption),
+                        style: context.txt.caption),
                   ],
                 ),
               ),
@@ -691,18 +690,18 @@ class _ScannerScreenState extends State<ScannerScreen> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 48, height: 48,
-          decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14)),
-          child: Icon(icon, color: AppColors.textSecondary, size: 22),
+          decoration: BoxDecoration(color: context.palette.surface2, borderRadius: BorderRadius.circular(14)),
+          child: Icon(icon, color: context.palette.textSecondary, size: 22),
         ),
         const SizedBox(height: 6),
-        Text(label, style: AppTextStyles.caption),
+        Text(label, style: context.txt.caption),
       ]),
     );
   }
 
   List<Widget> _buildCorners() {
     const s = 30.0, w = 3.0;
-    const c = AppColors.accent;
+    final c = context.palette.accent;
     return [
       Positioned(top: 0, left: 0, child: Container(width: s, height: w, color: c)),
       Positioned(top: 0, left: 0, child: Container(width: w, height: s, color: c)),
@@ -721,8 +720,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
         alignment: Alignment.topCenter,
         child: Container(
           height: 2,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.transparent, AppColors.accent, Colors.transparent]),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [Colors.transparent, context.palette.accent, Colors.transparent]),
           ),
         ),
       ),

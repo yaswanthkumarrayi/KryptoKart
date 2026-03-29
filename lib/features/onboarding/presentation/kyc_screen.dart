@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/widgets/kk_text_field.dart';
@@ -68,7 +67,10 @@ class _KycScreenState extends State<KycScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: context.palette.red,
+          ),
         );
       }
     } finally {
@@ -84,7 +86,11 @@ class _KycScreenState extends State<KycScreen> {
         actions: [
           TextButton(
             onPressed: () => context.go('/home'),
-            child: Text('Skip', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+            child: Text(
+              'Skip',
+              style: context.txt.bodyMedium
+                  .copyWith(color: context.palette.textSecondary),
+            ),
           ),
         ],
       ),
@@ -96,11 +102,11 @@ class _KycScreenState extends State<KycScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(
                 children: [
-                  _stepIndicator(0, 'Personal'),
-                  _stepLine(0),
-                  _stepIndicator(1, 'Bank'),
-                  _stepLine(1),
-                  _stepIndicator(2, 'Verify'),
+                  _stepIndicator(context, 0, 'Personal'),
+                  _stepLine(context, 0),
+                  _stepIndicator(context, 1, 'Bank'),
+                  _stepLine(context, 1),
+                  _stepIndicator(context, 2, 'Verify'),
                 ],
               ),
             ),
@@ -112,8 +118,8 @@ class _KycScreenState extends State<KycScreen> {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: (_currentStep + 1) / 3,
-                  backgroundColor: AppColors.surface2,
-                  color: AppColors.accent,
+                  backgroundColor: context.palette.surface2,
+                  color: context.palette.accent,
                   minHeight: 4,
                 ),
               ),
@@ -126,7 +132,7 @@ class _KycScreenState extends State<KycScreen> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: GlassCard(
-                  child: _buildStepContent(),
+                  child: _buildStepContent(context),
                 ),
               ),
             ),
@@ -146,7 +152,9 @@ class _KycScreenState extends State<KycScreen> {
     );
   }
 
-  Widget _buildStepContent() {
+  Widget _buildStepContent(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     switch (_currentStep) {
       case 0:
         return Column(
@@ -175,29 +183,31 @@ class _KycScreenState extends State<KycScreen> {
       case 2:
         return Column(
           children: [
-            const Icon(Icons.verified_user_rounded, size: 64, color: AppColors.accent),
+            Icon(Icons.verified_user_rounded, size: 64, color: p.accent),
             const SizedBox(height: 16),
-            Text('Document Verification', style: AppTextStyles.titleSmall),
+            Text('Document Verification', style: t.titleSmall),
             const SizedBox(height: 8),
             Text(
               'In a production app, this step would capture Aadhaar front/back and a selfie for verification.',
-              style: AppTextStyles.caption,
+              style: t.caption,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.green.withValues(alpha: 0.1),
+                color: p.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: AppColors.green),
+                  Icon(Icons.check_circle, color: p.green),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text('Your information has been saved. Tap "Complete Verification" to finalize.',
-                        style: AppTextStyles.body.copyWith(color: AppColors.green)),
+                    child: Text(
+                      'Your information has been saved. Tap "Complete Verification" to finalize.',
+                      style: t.body.copyWith(color: p.green),
+                    ),
                   ),
                 ],
               ),
@@ -209,7 +219,9 @@ class _KycScreenState extends State<KycScreen> {
     }
   }
 
-  Widget _stepIndicator(int step, String label) {
+  Widget _stepIndicator(BuildContext context, int step, String label) {
+    final p = context.palette;
+    final t = context.txt;
     final isActive = _currentStep >= step;
     return Column(
       children: [
@@ -217,27 +229,43 @@ class _KycScreenState extends State<KycScreen> {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color: isActive ? AppColors.accent : AppColors.surface2,
+            color: isActive ? p.accent : p.surface2,
             shape: BoxShape.circle,
           ),
           child: Center(
             child: isActive && _currentStep > step
-                ? const Icon(Icons.check, size: 16, color: AppColors.background)
-                : Text('${step + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isActive ? AppColors.background : AppColors.textSecondary)),
+                ? Icon(Icons.check, size: 16, color: p.textOnAccentButton)
+                : Text(
+                    '${step + 1}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isActive
+                          ? p.textOnAccentButton
+                          : p.textSecondary,
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: 4),
-        Text(label, style: AppTextStyles.caption.copyWith(color: isActive ? AppColors.accent : AppColors.textSecondary, fontSize: 10)),
+        Text(
+          label,
+          style: t.caption.copyWith(
+            color: isActive ? p.accent : p.textSecondary,
+            fontSize: 10,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _stepLine(int afterStep) {
+  Widget _stepLine(BuildContext context, int afterStep) {
+    final p = context.palette;
     return Expanded(
       child: Container(
         height: 2,
         margin: const EdgeInsets.symmetric(horizontal: 4),
-        color: _currentStep > afterStep ? AppColors.accent : AppColors.surface2,
+        color: _currentStep > afterStep ? p.accent : p.surface2,
       ),
     );
   }

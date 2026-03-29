@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:equatable/equatable.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../../../shared/models/transaction_model.dart';
@@ -155,6 +154,8 @@ class TransactionsScreen extends StatelessWidget {
   }
 
   Widget _content(BuildContext context, TransactionsLoaded state) {
+    final p = context.palette;
+    final t = context.txt;
     final filters = ['All', 'UPI', 'Crypto', 'Shopping'];
     final grouped = <String, List<TransactionModel>>{};
     for (final txn in state.transactions) {
@@ -176,19 +177,19 @@ class TransactionsScreen extends StatelessWidget {
                     child: ChoiceChip(
                       label: Text(f),
                       selected: state.activeFilter == f,
-                      selectedColor: AppColors.accent.withValues(alpha: 0.2),
+                      selectedColor: p.accent.withValues(alpha: 0.2),
                       onSelected: (_) => context.read<TransactionsBloc>().add(
                         FilterTransactions(f),
                       ),
                       side: BorderSide(
                         color: state.activeFilter == f
-                            ? AppColors.accent
-                            : AppColors.border,
+                            ? p.accent
+                            : p.border,
                       ),
                       labelStyle: TextStyle(
                         color: state.activeFilter == f
-                            ? AppColors.accent
-                            : AppColors.textSecondary,
+                            ? p.accent
+                            : p.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -205,7 +206,7 @@ class TransactionsScreen extends StatelessWidget {
                   icon: Icons.receipt_long_outlined,
                 )
               : RefreshIndicator(
-                  color: AppColors.accent,
+                  color: p.accent,
                   onRefresh: () async =>
                       context.read<TransactionsBloc>().add(LoadTransactions()),
                   child: ListView.builder(
@@ -221,7 +222,7 @@ class TransactionsScreen extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
                               header,
-                              style: AppTextStyles.captionMedium,
+                              style: t.captionMedium,
                             ),
                           ),
                           ...txns.map(

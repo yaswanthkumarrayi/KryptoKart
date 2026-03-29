@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
+import '../theme/kk_theme_context.dart';
 
 class KkTextField extends StatelessWidget {
   final String label;
@@ -36,10 +35,12 @@ class KkTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: AppTextStyles.label),
+        Text(label.toUpperCase(), style: t.label),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -51,7 +52,7 @@ class KkTextField extends StatelessWidget {
           enabled: enabled,
           readOnly: readOnly,
           focusNode: focusNode,
-          style: AppTextStyles.body,
+          style: t.body,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: prefix != null
@@ -67,22 +68,22 @@ class KkTextField extends StatelessWidget {
                   )
                 : null,
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: p.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: p.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: p.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+              borderSide: BorderSide(color: p.accent, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.red),
+              borderSide: BorderSide(color: p.red),
             ),
           ),
         ),

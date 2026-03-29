@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'theme/theme_controller.dart';
 import '../shared/services/api_service.dart';
 import '../shared/services/coingecko_service.dart';
 import '../shared/services/connectivity_service.dart';
@@ -13,6 +14,8 @@ import '../features/transactions/presentation/transactions_screen.dart';
 final sl = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
+  sl.registerLazySingleton<ThemeController>(() => ThemeController());
+
   // Services (singletons)
   sl.registerLazySingleton<ApiService>(() => ApiService());
   sl.registerLazySingleton<CoinGeckoService>(() => CoinGeckoService());

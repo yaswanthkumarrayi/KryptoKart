@@ -3,8 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:local_auth/local_auth.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_event.dart';
 import '../../auth/bloc/auth_state.dart';
@@ -26,7 +25,6 @@ class _SplashScreenState extends State<SplashScreen> {
     context.read<AuthBloc>().add(CheckAuthStatus());
   }
 
-  /// Prompt fingerprint / face ID and navigate on success.
   Future<void> _authenticateWithBiometric() async {
     try {
       final didAuth = await _localAuth.authenticate(
@@ -42,10 +40,11 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final p = context.palette;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Biometric error: $e'),
-            backgroundColor: AppColors.red,
+            backgroundColor: p.red,
           ),
         );
       }
@@ -54,12 +53,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is Authenticated) {
           context.go('/home');
         } else if (state is BiometricAuthRequired) {
-          // Prompt biometric immediately
           setState(() => _showBiometricButton = true);
           _authenticateWithBiometric();
         } else if (state is Unauthenticated || state is AuthError) {
@@ -71,22 +71,25 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Pulsing logo
               Container(
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  gradient: AppColors.accentGradient,
+                  gradient: p.accentGradient,
                   borderRadius: BorderRadius.circular(36),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accent.withValues(alpha: 0.4),
+                      color: p.accent.withValues(alpha: 0.4),
                       blurRadius: 30,
                       spreadRadius: 5,
                     ),
                   ],
                 ),
-                child: const Icon(Icons.shield_rounded, size: 64, color: AppColors.background),
+                child: Icon(
+                  Icons.shield_rounded,
+                  size: 64,
+                  color: p.textOnAccentButton,
+                ),
               )
                   .animate(onPlay: (c) => c.repeat(reverse: true))
                   .scale(
@@ -95,27 +98,20 @@ class _SplashScreenState extends State<SplashScreen> {
                     duration: 1200.ms,
                     curve: Curves.easeInOut,
                   ),
-
               const SizedBox(height: 28),
-
               Text(
                 'KryptoKart',
-                style: AppTextStyles.display.copyWith(
+                style: t.display.copyWith(
                   fontSize: 32,
-                  color: Colors.white,
+                  color: p.textPrimary,
                 ),
               ).animate().fadeIn(duration: 600.ms),
-
               const SizedBox(height: 8),
-
               Text(
                 'Scan. Pay. Track.',
-                style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+                style: t.body.copyWith(color: p.textSecondary),
               ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
-
               const SizedBox(height: 48),
-
-              // Show fingerprint icon + retry button when biometric is required
               if (_showBiometricButton) ...[
                 GestureDetector(
                   onTap: _authenticateWithBiometric,
@@ -123,40 +119,35 @@ class _SplashScreenState extends State<SplashScreen> {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.15),
+                      color: p.accent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                      border: Border.all(color: p.accent.withValues(alpha: 0.3)),
                     ),
-                    child: const Icon(Icons.fingerprint, size: 40, color: AppColors.accent),
+                    child: Icon(Icons.fingerprint, size: 40, color: p.accent),
                   ),
                 ).animate().fadeIn().scale(),
-
                 const SizedBox(height: 12),
-
                 Text(
                   'Tap to authenticate',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  style: t.caption.copyWith(color: p.textSecondary),
                 ).animate().fadeIn(delay: 200.ms),
-
                 const SizedBox(height: 24),
-
-                // Skip biometric → go to login
                 GestureDetector(
                   onTap: () => context.go('/login'),
                   child: Text(
                     'Use password instead',
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.accent,
+                    style: t.caption.copyWith(
+                      color: p.accent,
                       decoration: TextDecoration.underline,
                     ),
                   ),
                 ).animate().fadeIn(delay: 400.ms),
               ] else
-                const SizedBox(
+                SizedBox(
                   width: 28,
                   height: 28,
                   child: CircularProgressIndicator(
-                    color: AppColors.accent,
+                    color: p.accent,
                     strokeWidth: 2.5,
                   ),
                 ).animate().fadeIn(delay: 800.ms),

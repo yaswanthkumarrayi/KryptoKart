@@ -4,9 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:vibration/vibration.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/glass_card.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../shared/models/product_model.dart';
@@ -136,10 +134,10 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Product not found: $barcode'),
-        backgroundColor: AppColors.yellow,
+        backgroundColor: context.palette.yellow,
         action: SnackBarAction(
           label: 'OK',
-          textColor: AppColors.background,
+          textColor: context.palette.background,
           onPressed: () {},
         ),
       ),
@@ -176,7 +174,10 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: context.palette.red,
+          ),
         );
       }
     }
@@ -193,22 +194,28 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
               controller: _controller!,
               onDetect: _onDetect,
               errorBuilder: (_, __, ___) => Container(
-                color: AppColors.background,
-                child: const Center(
-                  child: Icon(Icons.camera_alt_outlined,
-                      size: 64, color: AppColors.textSecondary),
+                color: context.palette.background,
+                child: Center(
+                  child: Icon(
+                    Icons.camera_alt_outlined,
+                    size: 64,
+                    color: context.palette.textSecondary,
+                  ),
                 ),
               ),
             )
           else
             Container(
-              color: AppColors.background,
+              color: context.palette.background,
               child: Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.qr_code_scanner_rounded,
-                      size: 80, color: AppColors.textSecondary),
+                  Icon(
+                    Icons.qr_code_scanner_rounded,
+                    size: 80,
+                    color: context.palette.textSecondary,
+                  ),
                   const SizedBox(height: 16),
-                  Text('Camera Preview', style: AppTextStyles.titleSmall),
+                  Text('Camera Preview', style: context.txt.titleSmall),
                 ]),
               ),
             ),
@@ -224,7 +231,7 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: AppColors.accent.withValues(alpha: 0.3), width: 2),
+                    color: context.palette.accent.withValues(alpha: 0.3), width: 2),
               ),
               child: Stack(children: [
                 ..._buildCorners(),
@@ -277,11 +284,11 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.store.name,
-                            style: AppTextStyles.bodyMedium,
+                            style: context.txt.bodyMedium,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                         Text('Scan items to add to cart',
-                            style: AppTextStyles.caption.copyWith(fontSize: 10)),
+                            style: context.txt.caption.copyWith(fontSize: 10)),
                       ],
                     ),
                   ),
@@ -289,7 +296,7 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                   IconButton(
                     icon: Icon(
                       _torchOn ? Icons.flashlight_on : Icons.flashlight_off,
-                      color: _torchOn ? AppColors.accent : Colors.white,
+                      color: _torchOn ? context.palette.accent : Colors.white,
                       size: 22,
                     ),
                     onPressed: () {
@@ -312,7 +319,7 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.green.withValues(alpha: 0.9),
+                  color: context.palette.green.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -323,7 +330,7 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                     Expanded(
                       child: Text(
                         '${_lastAddedName!} added to cart',
-                        style: AppTextStyles.bodyMedium
+                        style: context.txt.bodyMedium
                             .copyWith(color: Colors.white),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -344,11 +351,12 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
             right: 0,
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.97),
+                color: context.palette.surface.withValues(alpha: 0.97),
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(24)),
-                border:
-                    const Border(top: BorderSide(color: AppColors.border)),
+                border: Border(
+                  top: BorderSide(color: context.palette.border),
+                ),
               ),
               child: SafeArea(
                 child: Column(
@@ -365,14 +373,17 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: AppColors.accent.withValues(alpha: 0.1),
+                                color: context.palette.accent.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Stack(
                                 children: [
-                                  const Center(
-                                    child: Icon(Icons.shopping_cart_rounded,
-                                        color: AppColors.accent, size: 22),
+                                  Center(
+                                    child: Icon(
+                                      Icons.shopping_cart_rounded,
+                                      color: context.palette.accent,
+                                      size: 22,
+                                    ),
                                   ),
                                   if (_cartCount > 0)
                                     Positioned(
@@ -381,8 +392,8 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                                       child: Container(
                                         width: 16,
                                         height: 16,
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.red,
+                                        decoration: BoxDecoration(
+                                          color: context.palette.red,
                                           shape: BoxShape.circle,
                                         ),
                                         child: Center(
@@ -406,13 +417,13 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                                     _cartCount == 0
                                         ? 'Cart is empty'
                                         : '$_cartCount item${_cartCount > 1 ? 's' : ''} in cart',
-                                    style: AppTextStyles.bodyMedium,
+                                    style: context.txt.bodyMedium,
                                   ),
                                   if (_cartCount > 0)
                                     Text(
                                       CurrencyFormatter.formatInr(_cartTotal),
-                                      style: AppTextStyles.captionMedium
-                                          .copyWith(color: AppColors.accent),
+                                      style: context.txt.captionMedium
+                                          .copyWith(color: context.palette.accent),
                                     ),
                                 ],
                               ),
@@ -421,7 +432,7 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                               _showCart
                                   ? Icons.keyboard_arrow_down
                                   : Icons.keyboard_arrow_up,
-                              color: AppColors.textSecondary,
+                              color: context.palette.textSecondary,
                             ),
                           ],
                         ),
@@ -444,7 +455,7 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: AppColors.surface2,
+                                color: context.palette.surface2,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
@@ -455,14 +466,14 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(item.product.name,
-                                            style: AppTextStyles.bodyMedium,
+                                            style: context.txt.bodyMedium,
                                             maxLines: 1,
                                             overflow:
                                                 TextOverflow.ellipsis),
                                         Text(
                                           CurrencyFormatter.formatInr(
                                               item.product.priceInr),
-                                          style: AppTextStyles.caption,
+                                          style: context.txt.caption,
                                         ),
                                       ],
                                     ),
@@ -476,7 +487,7 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 10),
                                         child: Text('${item.quantity}',
-                                            style: AppTextStyles.bodyMedium),
+                                            style: context.txt.bodyMedium),
                                       ),
                                       _qtyBtn(Icons.add, () => _updateQuantity(i, 1)),
                                     ],
@@ -484,8 +495,8 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                                   const SizedBox(width: 8),
                                   Text(
                                     CurrencyFormatter.formatInr(item.total),
-                                    style: AppTextStyles.bodyMedium
-                                        .copyWith(color: AppColors.accent),
+                                    style: context.txt.bodyMedium
+                                        .copyWith(color: context.palette.accent),
                                   ),
                                 ],
                               ),
@@ -510,7 +521,7 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12, top: 4),
                         child: Text('Scan product barcodes to start shopping',
-                            style: AppTextStyles.caption),
+                            style: context.txt.caption),
                       ),
                   ],
                 ),
@@ -529,18 +540,18 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
         width: 26,
         height: 26,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.palette.border),
         ),
-        child: Icon(icon, size: 14, color: AppColors.textSecondary),
+        child: Icon(icon, size: 14, color: context.palette.textSecondary),
       ),
     );
   }
 
   List<Widget> _buildCorners() {
     const s = 28.0, w = 3.0;
-    const c = AppColors.accent;
+    final c = context.palette.accent;
     return [
       Positioned(top: 0, left: 0, child: Container(width: s, height: w, color: c)),
       Positioned(top: 0, left: 0, child: Container(width: w, height: s, color: c)),
@@ -559,9 +570,14 @@ class _StoreSessionScreenState extends State<StoreSessionScreen>
         alignment: Alignment.topCenter,
         child: Container(
           height: 2,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-                colors: [Colors.transparent, AppColors.accent, Colors.transparent]),
+              colors: [
+                Colors.transparent,
+                context.palette.accent,
+                Colors.transparent,
+              ],
+            ),
           ),
         ),
       ),

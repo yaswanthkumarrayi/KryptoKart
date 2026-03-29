@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/service_locator.dart';
@@ -79,11 +78,11 @@ class _WishlistScreenState extends State<WishlistScreen> {
         ),
         title: Row(
           children: [
-            const Icon(Icons.star_rounded, color: AppColors.yellow, size: 24),
+            Icon(Icons.star_rounded, color: context.palette.yellow, size: 24),
             const SizedBox(width: 8),
             Text(
               'Wishlist',
-              style: AppTextStyles.title.copyWith(color: AppColors.accent),
+              style: context.txt.title.copyWith(color: context.palette.accent),
             ),
           ],
         ),
@@ -92,8 +91,8 @@ class _WishlistScreenState extends State<WishlistScreen> {
       body: _isLoading
           ? _buildShimmer()
           : _wishlistedCoins.isEmpty
-          ? _buildEmptyState()
-          : _buildContent(),
+          ? _buildEmptyState(context)
+          : _buildContent(context),
     );
   }
 
@@ -112,7 +111,9 @@ class _WishlistScreenState extends State<WishlistScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -121,22 +122,22 @@ class _WishlistScreenState extends State<WishlistScreen> {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: AppColors.yellow.withValues(alpha: 0.1),
+              color: p.yellow.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(50),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.star_border_rounded,
-              color: AppColors.yellow,
+              color: p.yellow,
               size: 50,
             ),
           ),
           const SizedBox(height: 24),
-          Text('No Wishlisted Items', style: AppTextStyles.titleSmall),
+          Text('No Wishlisted Items', style: t.titleSmall),
           const SizedBox(height: 8),
           Text(
             'Add coins to your wishlist by tapping\nthe star icon on any coin.',
             textAlign: TextAlign.center,
-            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            style: t.body.copyWith(color: p.textSecondary),
           ),
           const SizedBox(height: 24),
           GestureDetector(
@@ -144,12 +145,12 @@ class _WishlistScreenState extends State<WishlistScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                gradient: AppColors.accentGradient,
+                gradient: p.accentGradient,
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Text(
                 'Browse Markets',
-                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+                style: t.bodyMedium.copyWith(color: p.textOnAccentButton),
               ),
             ),
           ),
@@ -158,22 +159,24 @@ class _WishlistScreenState extends State<WishlistScreen> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
     return RefreshIndicator(
-      color: AppColors.accent,
+      color: context.palette.accent,
       onRefresh: _loadWishlist,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _wishlistedCoins.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (ctx, index) {
           final coin = _wishlistedCoins[index];
-          return _buildCoinCard(coin, index);
+          return _buildCoinCard(ctx, coin, index);
         },
       ),
     );
   }
 
-  Widget _buildCoinCard(CoinModel coin, int index) {
+  Widget _buildCoinCard(BuildContext context, CoinModel coin, int index) {
+    final p = context.palette;
+    final t = context.txt;
     final isPositive = coin.priceChange24h >= 0;
 
     return GestureDetector(
@@ -190,7 +193,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.surface2,
+                  color: p.surface2,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: coin.imageUrl.isNotEmpty
@@ -205,8 +208,8 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                 0,
                                 coin.symbol.length > 2 ? 2 : coin.symbol.length,
                               ),
-                              style: AppTextStyles.captionMedium.copyWith(
-                                color: AppColors.accent,
+                              style: t.captionMedium.copyWith(
+                                color: p.accent,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -219,8 +222,8 @@ class _WishlistScreenState extends State<WishlistScreen> {
                             0,
                             coin.symbol.length > 2 ? 2 : coin.symbol.length,
                           ),
-                          style: AppTextStyles.captionMedium.copyWith(
-                            color: AppColors.accent,
+                          style: t.captionMedium.copyWith(
+                            color: p.accent,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -234,13 +237,13 @@ class _WishlistScreenState extends State<WishlistScreen> {
                   children: [
                     Text(
                       coin.name,
-                      style: AppTextStyles.bodyMedium,
+                      style: t.bodyMedium,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       coin.symbol.toUpperCase(),
-                      style: AppTextStyles.caption,
+                      style: t.caption,
                     ),
                   ],
                 ),
@@ -249,7 +252,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(coin.priceFormatted, style: AppTextStyles.bodyMedium),
+                  Text(coin.priceFormatted, style: t.bodyMedium),
                   const SizedBox(height: 2),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -257,7 +260,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: (isPositive ? AppColors.green : AppColors.red)
+                      color: (isPositive ? p.green : p.red)
                           .withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(50),
                     ),
@@ -266,7 +269,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: isPositive ? AppColors.green : AppColors.red,
+                        color: isPositive ? p.green : p.red,
                       ),
                     ),
                   ),
@@ -280,12 +283,12 @@ class _WishlistScreenState extends State<WishlistScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppColors.yellow.withValues(alpha: 0.15),
+                    color: p.yellow.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.star_rounded,
-                    color: AppColors.yellow,
+                    color: p.yellow,
                     size: 20,
                   ),
                 ),

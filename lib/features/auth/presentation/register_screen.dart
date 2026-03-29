@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/widgets/kk_text_field.dart';
@@ -34,14 +33,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _walletAddress;
   bool _isConnectingWallet = false;
 
-  // Services
   final _walletService = sl<WalletService>();
   final _apiService = sl<ApiService>();
 
   @override
   void initState() {
     super.initState();
-    // Restore any previously connected wallet
     if (_walletService.isConnected) {
       _connectedWallet = _walletService.walletName;
       _walletAddress = _walletService.connectedAddress;
@@ -60,7 +57,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _onRegister() {
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please agree to Terms of Service'), backgroundColor: AppColors.red),
+        SnackBar(
+          content: const Text('Please agree to Terms of Service'),
+          backgroundColor: context.palette.red,
+        ),
       );
       return;
     }
@@ -75,7 +75,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  /// Connect MetaMask wallet — fast, no browser, instant authentication.
   Future<void> _connectMetaMask() async {
     setState(() => _isConnectingWallet = true);
 
@@ -89,33 +88,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _isConnectingWallet = false;
         });
 
-        // Save wallet address to backend if user is already authenticated
         if (_apiService.isAuthenticated) {
           try {
             await _apiService.updateWallet(address);
-          } catch (_) {
-            // Non-critical — will be saved on next profile update
-          }
+          } catch (_) {}
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('MetaMask connected: ${shortenWalletAddress(address)}'),
-            backgroundColor: AppColors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'MetaMask connected: ${shortenWalletAddress(address)}',
+              ),
+              backgroundColor: context.palette.green,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isConnectingWallet = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connection failed: $e'), backgroundColor: AppColors.red),
+          SnackBar(
+            content: Text('Connection failed: $e'),
+            backgroundColor: context.palette.red,
+          ),
         );
       }
     }
   }
 
-  /// Phantom wallet not supported yet.
   void _connectPhantom() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -127,6 +129,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -136,12 +140,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         title: const Text('Create Account'),
       ),
       body: BlocListener<AuthBloc, AuthState>(
-        listener: (context, state) {
+        listener: (ctx, state) {
           if (state is Authenticated) {
-            context.go('/home');
+            ctx.go('/home');
           } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: AppColors.red),
+            ScaffoldMessenger.of(ctx).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: ctx.palette.red,
+              ),
             );
           }
         },
@@ -153,46 +160,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-
                   Container(
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: AppColors.surface2,
+                      color: p.surface2,
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Icon(Icons.shield_rounded, size: 40, color: AppColors.accent),
+                    child: Icon(Icons.shield_rounded, size: 40, color: p.accent),
                   ).animate().scale(duration: 500.ms),
-
                   const SizedBox(height: 16),
-                  Text('Join the Revolution', style: AppTextStyles.display).animate().fadeIn(delay: 200.ms),
+                  Text('Join the Revolution', style: t.display)
+                      .animate()
+                      .fadeIn(delay: 200.ms),
                   const SizedBox(height: 8),
-                  Text("Secure your digital assets with KryptoKart's next-gen ecosystem.",
-                    style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+                  Text(
+                    "Secure your digital assets with KryptoKart's next-gen ecosystem.",
+                    style: t.body.copyWith(color: p.textSecondary),
                     textAlign: TextAlign.center,
                   ).animate().fadeIn(delay: 300.ms),
-
                   const SizedBox(height: 30),
-
-                  KkTextField(label: 'Full Name', hint: 'Enter your full name', controller: _nameController, validator: Validators.validateName).animate().fadeIn(delay: 350.ms),
+                  KkTextField(
+                    label: 'Full Name',
+                    hint: 'Enter your full name',
+                    controller: _nameController,
+                    validator: Validators.validateName,
+                  ).animate().fadeIn(delay: 350.ms),
                   const SizedBox(height: 20),
                   KkTextField(
-                    label: 'Phone Number', hint: 'Enter 10-digit phone number', controller: _phoneController,
-                    keyboardType: TextInputType.phone, validator: Validators.validatePhone,
+                    label: 'Phone Number',
+                    hint: 'Enter 10-digit phone number',
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    validator: Validators.validatePhone,
                     prefix: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(8)),
-                      child: Text('+91', style: AppTextStyles.bodyMedium),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: p.surface2,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text('+91', style: t.bodyMedium),
                     ),
                   ).animate().fadeIn(delay: 400.ms),
                   const SizedBox(height: 20),
-                  KkTextField(label: 'Password', hint: 'Create a password', controller: _passwordController, obscure: true, validator: Validators.validatePassword).animate().fadeIn(delay: 450.ms),
+                  KkTextField(
+                    label: 'Password',
+                    hint: 'Create a password',
+                    controller: _passwordController,
+                    obscure: true,
+                    validator: Validators.validatePassword,
+                  ).animate().fadeIn(delay: 450.ms),
                   const SizedBox(height: 20),
-                  KkTextField(label: 'UPI ID', hint: 'example@upi', controller: _upiController).animate().fadeIn(delay: 500.ms),
-
+                  KkTextField(
+                    label: 'UPI ID',
+                    hint: 'example@upi',
+                    controller: _upiController,
+                  ).animate().fadeIn(delay: 500.ms),
                   const SizedBox(height: 20),
-
-                  // Connect Wallet card — instant, no browser
                   GlassCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,32 +229,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Expanded(
                               child: Text(
                                 'Connect Wallet',
-                                style: AppTextStyles.bodyMedium,
+                                style: t.bodyMedium,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(50)),
-                              child: Text('OPTIONAL', style: AppTextStyles.caption.copyWith(fontSize: 10)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: p.surface2,
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: Text(
+                                'OPTIONAL',
+                                style: t.caption.copyWith(fontSize: 10),
+                              ),
                             ),
                             if (_connectedWallet != null)
                               Padding(
                                 padding: const EdgeInsets.only(left: 6),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(color: AppColors.green.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(50)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: p.green.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.check_circle, color: AppColors.green, size: 12),
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: p.green,
+                                        size: 12,
+                                      ),
                                       const SizedBox(width: 4),
                                       Flexible(
                                         child: Text(
                                           _connectedWallet!,
-                                          style: AppTextStyles.caption.copyWith(color: AppColors.green, fontSize: 10),
+                                          style: t.caption.copyWith(
+                                            color: p.green,
+                                            fontSize: 10,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -238,23 +287,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                           ],
                         ),
-                        // Show wallet address when connected
                         if (_walletAddress != null) ...[
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppColors.surface2,
+                              color: p.surface2,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.key, color: AppColors.accent, size: 14),
+                                Icon(Icons.key, color: p.accent, size: 14),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     shortenWalletAddress(_walletAddress),
-                                    style: AppTextStyles.captionMedium.copyWith(color: AppColors.accent, fontFamily: 'monospace'),
+                                    style: t.captionMedium.copyWith(
+                                      color: p.accent,
+                                      fontFamily: 'monospace',
+                                    ),
                                   ),
                                 ),
                                 GestureDetector(
@@ -265,7 +319,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       _walletAddress = null;
                                     });
                                   },
-                                  child: const Icon(Icons.close, color: AppColors.textSecondary, size: 16),
+                                  child: Icon(
+                                    Icons.close,
+                                    color: p.textSecondary,
+                                    size: 16,
+                                  ),
                                 ),
                               ],
                             ),
@@ -275,68 +333,99 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _walletIcon(Icons.account_balance_wallet_rounded, 'MetaMask', () => _connectMetaMask(),
-                                isConnected: _connectedWallet == 'MetaMask'),
+                            _walletIcon(
+                              context,
+                              Icons.account_balance_wallet_rounded,
+                              'MetaMask',
+                              () => _connectMetaMask(),
+                              isConnected: _connectedWallet == 'MetaMask',
+                            ),
                             const SizedBox(width: 20),
-                            _walletIcon(Icons.link_rounded, 'WalletConnect', () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('WalletConnect: Use MetaMask or Phantom')),
-                              );
-                            }),
+                            _walletIcon(
+                              context,
+                              Icons.link_rounded,
+                              'WalletConnect',
+                              () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'WalletConnect: Use MetaMask or Phantom',
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                             const SizedBox(width: 20),
-                            _walletIcon(Icons.blur_on_rounded, 'Phantom', () => _connectPhantom(),
-                                isConnected: _connectedWallet == 'Phantom'),
+                            _walletIcon(
+                              context,
+                              Icons.blur_on_rounded,
+                              'Phantom',
+                              () => _connectPhantom(),
+                              isConnected: _connectedWallet == 'Phantom',
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
                         KkButton(
-                          label: _connectedWallet != null ? '✓ Wallet Connected' : 'Connect Crypto Wallet',
+                          label: _connectedWallet != null
+                              ? '✓ Wallet Connected'
+                              : 'Connect Crypto Wallet',
                           icon: Icons.account_balance_wallet_outlined,
                           outlined: _connectedWallet == null,
                           height: 44,
                           isLoading: _isConnectingWallet,
-                          onTap: _connectedWallet != null ? null : () => _connectMetaMask(),
+                          onTap: _connectedWallet != null
+                              ? null
+                              : () => _connectMetaMask(),
                         ),
                       ],
                     ),
                   ).animate().fadeIn(delay: 550.ms),
-
                   const SizedBox(height: 20),
-
-                  // Terms
                   Row(
                     children: [
                       Checkbox(
                         value: _agreedToTerms,
-                        onChanged: (v) => setState(() => _agreedToTerms = v ?? false),
-                        activeColor: AppColors.accent,
-                        side: const BorderSide(color: AppColors.border),
+                        onChanged: (v) =>
+                            setState(() => _agreedToTerms = v ?? false),
+                        activeColor: p.accent,
+                        side: BorderSide(color: p.border),
                       ),
-                      Expanded(child: Text('I agree to the Terms of Service and Privacy Policy', style: AppTextStyles.caption)),
+                      Expanded(
+                        child: Text(
+                          'I agree to the Terms of Service and Privacy Policy',
+                          style: t.caption,
+                        ),
+                      ),
                     ],
                   ),
-
                   const SizedBox(height: 24),
-
                   BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
-                      return KkButton(label: 'Create My Account', onTap: _onRegister, isLoading: state is AuthLoading);
+                      return KkButton(
+                        label: 'Create My Account',
+                        onTap: _onRegister,
+                        isLoading: state is AuthLoading,
+                      );
                     },
                   ).animate().fadeIn(delay: 600.ms),
-
                   const SizedBox(height: 20),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Already have an account? ', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+                      Text(
+                        'Already have an account? ',
+                        style: t.body.copyWith(color: p.textSecondary),
+                      ),
                       GestureDetector(
                         onTap: () => context.pop(),
-                        child: Text('Login', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent)),
+                        child: Text(
+                          'Login',
+                          style: t.bodyMedium.copyWith(color: p.accent),
+                        ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 40),
                 ],
               ),
@@ -347,7 +436,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _walletIcon(IconData icon, String label, VoidCallback onTap, {bool isConnected = false}) {
+  Widget _walletIcon(
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    bool isConnected = false,
+  }) {
+    final p = context.palette;
+    final t = context.txt;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -356,17 +453,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: isConnected ? AppColors.accent.withValues(alpha: 0.15) : AppColors.surface2,
+              color: isConnected
+                  ? p.accent.withValues(alpha: 0.15)
+                  : p.surface2,
               shape: BoxShape.circle,
-              border: Border.all(color: isConnected ? AppColors.accent : AppColors.border),
+              border: Border.all(
+                color: isConnected ? p.accent : p.border,
+              ),
             ),
-            child: Icon(icon, color: isConnected ? AppColors.accent : AppColors.textSecondary, size: 24),
+            child: Icon(
+              icon,
+              color: isConnected ? p.accent : p.textSecondary,
+              size: 24,
+            ),
           ),
           const SizedBox(height: 4),
-          Text(label, style: AppTextStyles.caption.copyWith(
-            fontSize: 10,
-            color: isConnected ? AppColors.accent : AppColors.textSecondary,
-          )),
+          Text(
+            label,
+            style: t.caption.copyWith(
+              fontSize: 10,
+              color: isConnected ? p.accent : p.textSecondary,
+            ),
+          ),
         ],
       ),
     );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
+import '../theme/kk_theme_context.dart';
 
 class KkErrorWidget extends StatelessWidget {
   final String message;
@@ -16,30 +15,32 @@ class KkErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 64, color: AppColors.red.withValues(alpha: 0.6)),
+            Icon(icon, size: 64, color: p.red.withValues(alpha: 0.6)),
             const SizedBox(height: 16),
             Text(
               message,
-              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: t.body.copyWith(color: p.textSecondary),
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh, color: AppColors.accent),
+                icon: Icon(Icons.refresh, color: p.accent),
                 label: Text(
                   'Retry',
-                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent),
+                  style: t.bodyMedium.copyWith(color: p.accent),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.accent),
+                  side: BorderSide(color: p.accent),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -65,17 +66,19 @@ class KkEmptyWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.4)),
+            Icon(icon, size: 64, color: p.textSecondary.withValues(alpha: 0.4)),
             const SizedBox(height: 16),
             Text(
               message,
-              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: t.body.copyWith(color: p.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],

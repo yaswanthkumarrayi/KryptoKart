@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/widgets/kk_text_field.dart';
@@ -33,7 +32,7 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
   bool _isUpdatingConverter = false;
   bool _isWishlisted = false;
   bool _isLoadingChart = false;
-  int _currentChartRequest = 0; // For request cancellation
+  int _currentChartRequest = 0;
 
   @override
   void initState() {
@@ -86,12 +85,11 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     CoinModel? coin;
     List<FlSpot> chart = [];
     Map<String, dynamic>? liveData;
 
-    // Fetch live price data
     try {
       final priceData = await _coinGecko.fetchSimplePrice([widget.coinId]);
       liveData = priceData[widget.coinId] as Map<String, dynamic>?;
@@ -99,7 +97,6 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
       liveData = null;
     }
 
-    // Fetch chart data
     try {
       chart = await _coinGecko.fetchMarketChart(
         widget.coinId,
@@ -109,7 +106,6 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
       chart = [];
     }
 
-    // Fetch coin details
     try {
       final coins = await _coinGecko.fetchMarkets(perPage: 50);
       coin = coins.firstWhere(
@@ -125,7 +121,6 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
         ),
       );
     } catch (e) {
-      // Create fallback coin from live data
       coin = CoinModel(
         id: widget.coinId,
         symbol: _getCoinSymbol(widget.coinId),
@@ -147,10 +142,9 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
     }
   }
 
-  /// Load only chart data with request cancellation to prevent race conditions
   Future<void> _loadChartOnly(int days) async {
     final requestId = ++_currentChartRequest;
-    
+
     setState(() {
       _selectedDays = days;
       _isLoadingChart = true;
@@ -158,8 +152,7 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
 
     try {
       final chart = await _coinGecko.fetchMarketChart(widget.coinId, days: days);
-      
-      // Only update if this is still the latest request
+
       if (mounted && requestId == _currentChartRequest) {
         setState(() {
           _chartData = chart;
@@ -175,128 +168,123 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     final coinName = _getCoinName(widget.coinId);
     final coinSymbol = _getCoinSymbol(widget.coinId);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$coinName ($coinSymbol)', style: AppTextStyles.titleSmall),
+        title: Text('$coinName ($coinSymbol)', style: t.titleSmall),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.accent),
+          ? Center(
+              child: CircularProgressIndicator(color: p.accent),
             )
           : _liveData == null
-          ? const Center(child: Text('Coin data not available'))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Price hero
-                  Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          '₹${_formatInrPrice((_liveData!['inr'] as num?)?.toDouble() ?? 0)}',
-                          style: AppTextStyles.number.copyWith(fontSize: 40),
-                        ).animate().fadeIn(),
-                        const SizedBox(height: 8),
-                        _buildChangeChip(),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Time filter chips
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [1, 7, 30, 90, 365].map((d) {
-                      final label = d == 1
-                          ? '1D'
-                          : d == 7
-                          ? '7D'
-                          : d == 30
-                          ? '1M'
-                          : d == 90
-                          ? '3M'
-                          : '1Y';
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: ChoiceChip(
-                          label: Text(label),
-                          selected: _selectedDays == d,
-                          selectedColor: AppColors.accent.withValues(
-                            alpha: 0.2,
-                          ),
-                          onSelected: (_) {
-                            if (_selectedDays != d) {
-                              _loadChartOnly(d);
-                            }
-                          },
-                          side: BorderSide(
-                            color: _selectedDays == d
-                                ? AppColors.accent
-                                : AppColors.border,
-                          ),
-                          labelStyle: TextStyle(
-                            color: _selectedDays == d
-                                ? AppColors.accent
-                                : AppColors.textSecondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Chart
-                  if (_chartData.isNotEmpty) _buildChart(),
-
-                  const SizedBox(height: 24),
-
-                  // Stats grid
-                  Row(
+              ? const Center(child: Text('Coin data not available'))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: _statCard('Market Cap', _formatMarketCap()),
+                      Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              '₹${_formatInrPrice((_liveData!['inr'] as num?)?.toDouble() ?? 0)}',
+                              style: t.number.copyWith(fontSize: 40),
+                            ).animate().fadeIn(),
+                            const SizedBox(height: 8),
+                            _buildChangeChip(context),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(child: _statCard('24h Change', _formatChange())),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [1, 7, 30, 90, 365].map((d) {
+                          final label = d == 1
+                              ? '1D'
+                              : d == 7
+                                  ? '7D'
+                                  : d == 30
+                                      ? '1M'
+                                      : d == 90
+                                          ? '3M'
+                                          : '1Y';
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: ChoiceChip(
+                              label: Text(label),
+                              selected: _selectedDays == d,
+                              selectedColor: p.accent.withValues(alpha: 0.2),
+                              onSelected: (_) {
+                                if (_selectedDays != d) {
+                                  _loadChartOnly(d);
+                                }
+                              },
+                              side: BorderSide(
+                                color: _selectedDays == d
+                                    ? p.accent
+                                    : p.border,
+                              ),
+                              labelStyle: TextStyle(
+                                color: _selectedDays == d
+                                    ? p.accent
+                                    : p.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+                      if (_chartData.isNotEmpty) _buildChart(context),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _statCard(
+                              context,
+                              'Market Cap',
+                              _formatMarketCap(),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _statCard(
+                              context,
+                              '24h Change',
+                              _formatChange(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildConverter(context, coinSymbol),
+                      const SizedBox(height: 24),
+                      KkButton(
+                        label: 'Buy / Pay with $coinSymbol',
+                        onTap: () {},
+                        icon: Icons.shopping_cart_rounded,
+                      ),
+                      const SizedBox(height: 40),
                     ],
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // INR to Crypto Converter
-                  _buildConverter(coinSymbol),
-
-                  const SizedBox(height: 24),
-
-                  KkButton(
-                    label: 'Buy / Pay with $coinSymbol',
-                    onTap: () {},
-                    icon: Icons.shopping_cart_rounded,
-                  ),
-
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
+                ),
     );
   }
 
-  Widget _buildChangeChip() {
+  Widget _buildChangeChip(BuildContext context) {
+    final p = context.palette;
     final change24h = (_liveData!['inr_24h_change'] as num?)?.toDouble() ?? 0.0;
     final isPositive = change24h >= 0;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: (isPositive ? AppColors.green : AppColors.red).withValues(
+        color: (isPositive ? p.green : p.red).withValues(
           alpha: 0.15,
         ),
         borderRadius: BorderRadius.circular(50),
@@ -305,15 +293,16 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
         '${isPositive ? '+' : ''}${change24h.toStringAsFixed(2)}%',
         style: TextStyle(
           fontWeight: FontWeight.w600,
-          color: isPositive ? AppColors.green : AppColors.red,
+          color: isPositive ? p.green : p.red,
         ),
       ),
     );
   }
 
-  Widget _buildChart() {
+  Widget _buildChart(BuildContext context) {
+    final p = context.palette;
     final isPositive = _chartData.last.y > _chartData.first.y;
-    final chartColor = isPositive ? AppColors.green : AppColors.red;
+    final chartColor = isPositive ? p.green : p.red;
 
     return SizedBox(
       height: 200,
@@ -324,7 +313,7 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
           titlesData: const FlTitlesData(show: false),
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (spot) => AppColors.surface2,
+              getTooltipColor: (spot) => p.surface2,
             ),
           ),
           lineBarsData: [
@@ -354,16 +343,18 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
     ).animate().fadeIn(delay: 200.ms);
   }
 
-  Widget _buildConverter(String coinSymbol) {
+  Widget _buildConverter(BuildContext context, String coinSymbol) {
+    final p = context.palette;
+    final t = context.txt;
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.currency_exchange, color: AppColors.accent, size: 18),
+              Icon(Icons.currency_exchange, color: p.accent, size: 18),
               const SizedBox(width: 8),
-              Text('INR to $coinSymbol Converter', style: AppTextStyles.titleSmall),
+              Text('INR to $coinSymbol Converter', style: t.titleSmall),
             ],
           ),
           const SizedBox(height: 16),
@@ -374,16 +365,20 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
                   label: 'INR',
                   hint: 'Enter amount',
                   controller: _inrController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  prefix: const Text(
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  prefix: Text(
                     '₹',
-                    style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: p.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.arrow_forward, color: AppColors.accent, size: 20),
+                child: Icon(Icons.arrow_forward, color: p.accent, size: 20),
               ),
               Flexible(
                 child: KkTextField(
@@ -394,7 +389,7 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
                   readOnly: true,
                   suffix: Text(
                     coinSymbol,
-                    style: const TextStyle(color: AppColors.accent, fontSize: 12),
+                    style: TextStyle(color: p.accent, fontSize: 12),
                   ),
                 ),
               ),
@@ -403,21 +398,22 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
           const SizedBox(height: 10),
           Text(
             'Enter INR amount to convert',
-            style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.textSecondary),
+            style: t.caption.copyWith(fontSize: 11, color: p.textSecondary),
           ),
         ],
       ),
     );
   }
 
-  Widget _statCard(String label, String value) {
+  Widget _statCard(BuildContext context, String label, String value) {
+    final t = context.txt;
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTextStyles.caption),
+          Text(label, style: t.caption),
           const SizedBox(height: 4),
-          Text(value, style: AppTextStyles.bodyMedium),
+          Text(value, style: t.bodyMedium),
         ],
       ),
     );
@@ -450,19 +446,22 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
   }
 
   String _formatInrPrice(double price) {
-    if (price >= 100000) return (price / 100000).toStringAsFixed(2) + 'L';
-    if (price >= 1000) return (price / 1000).toStringAsFixed(2) + 'K';
+    if (price >= 100000) return '${(price / 100000).toStringAsFixed(2)}L';
+    if (price >= 1000) return '${(price / 1000).toStringAsFixed(2)}K';
     return price.toStringAsFixed(2);
   }
 
   String _formatMarketCap() {
     final marketCap = _coin?.marketCap ?? 0;
-    if (marketCap >= 1e12)
+    if (marketCap >= 1e12) {
       return '₹${(marketCap / 1e12 * 83).toStringAsFixed(2)}T';
-    if (marketCap >= 1e9)
+    }
+    if (marketCap >= 1e9) {
       return '₹${(marketCap / 1e9 * 83).toStringAsFixed(2)}B';
-    if (marketCap >= 1e6)
+    }
+    if (marketCap >= 1e6) {
       return '₹${(marketCap / 1e6 * 83).toStringAsFixed(2)}M';
+    }
     return '₹${(marketCap * 83).toStringAsFixed(0)}';
   }
 

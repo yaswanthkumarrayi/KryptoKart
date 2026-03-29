@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:uuid/uuid.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/kk_theme_context.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -17,6 +16,7 @@ import '../../../core/utils/wallet_display.dart';
 class PaymentScreen extends StatefulWidget {
   final Map<String, dynamic>? paymentData;
   const PaymentScreen({super.key, this.paymentData});
+
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
 }
@@ -36,7 +36,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void initState() {
     super.initState();
-    // Set auth token for Razorpay service
     _razorpayService.setAuthToken(_apiService.token);
 
     if (widget.paymentData != null) {
@@ -71,9 +70,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final amount = double.tryParse(_amountController.text) ?? 0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter a valid amount'),
-          backgroundColor: AppColors.red,
+        SnackBar(
+          content: const Text('Enter a valid amount'),
+          backgroundColor: context.palette.red,
         ),
       );
       return;
@@ -82,10 +81,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     setState(() => _isProcessing = true);
 
     if (_isCrypto) {
-      // For crypto payments, create transaction directly (no Razorpay)
       await _processCryptoPayment(amount);
     } else {
-      // UPI payment via Razorpay with fallback
       await _processUpiPayment(amount);
     }
   }
@@ -94,7 +91,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     try {
       final amountPaise = (amount * 100).toInt();
 
-      // Use the new Razorpay service with automatic fallback
       final result = await _razorpayService.startPayment(
         amountPaise: amountPaise,
         name: 'KryptoKart',
@@ -104,7 +100,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (!mounted) return;
 
       if (result.success) {
-        // Payment successful - create transaction record
         final txnId =
             'TXN-${result.paymentId ?? const Uuid().v4().substring(0, 8).toUpperCase()}';
         try {
@@ -125,7 +120,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
             context.push('/receipt', extra: txn);
           }
         } catch (e) {
-          // Transaction record failed but payment succeeded
           if (mounted) {
             setState(() => _isProcessing = false);
             ScaffoldMessenger.of(context).showSnackBar(
@@ -133,19 +127,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 content: Text(
                   'Payment successful! (ID: ${result.paymentId}) Recording issue: $e',
                 ),
-                backgroundColor: AppColors.yellow,
+                backgroundColor: context.palette.yellow,
               ),
             );
           }
         }
       } else {
-        // Payment failed
         if (mounted) {
           setState(() => _isProcessing = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Payment failed: ${result.message}'),
-              backgroundColor: AppColors.red,
+              backgroundColor: context.palette.red,
             ),
           );
         }
@@ -154,7 +147,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (mounted) {
         setState(() => _isProcessing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: context.palette.red,
+          ),
         );
       }
     }
@@ -184,7 +180,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Payment failed: $e'),
-            backgroundColor: AppColors.red,
+            backgroundColor: context.palette.red,
           ),
         );
       }
@@ -199,27 +195,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     return Scaffold(
       appBar: AppBar(title: const Text('Send Payment')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Recipient card
             GlassCard(
               child: Row(
                 children: [
                   Container(
                     width: 48,
                     height: 48,
-                    decoration: const BoxDecoration(
-                      color: AppColors.surface2,
+                    decoration: BoxDecoration(
+                      color: p.surface2,
                       shape: BoxShape.circle,
                     ),
                     child: Stack(
                       children: [
-                        const Center(
-                          child: Icon(Icons.person, color: AppColors.accent),
+                        Center(
+                          child: Icon(Icons.person, color: p.accent),
                         ),
                         Positioned(
                           bottom: 0,
@@ -227,8 +224,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           child: Container(
                             width: 16,
                             height: 16,
-                            decoration: const BoxDecoration(
-                              color: AppColors.green,
+                            decoration: BoxDecoration(
+                              color: p.green,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -246,12 +243,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_recipientName, style: AppTextStyles.titleSmall),
+                        Text(_recipientName, style: t.titleSmall),
                         Text(
                           _isCrypto
                               ? shortenWalletAddress(_recipientAddress)
                               : _recipientAddress,
-                          style: AppTextStyles.caption,
+                          style: t.caption,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -261,16 +258,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             ).animate().fadeIn(),
-
             const SizedBox(height: 20),
-
-            // Crypto / UPI toggle
             Container(
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: p.surface,
                 borderRadius: BorderRadius.circular(50),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: p.border),
               ),
               child: Row(
                 children: [
@@ -279,9 +273,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       onTap: () => setState(() => _isCrypto = true),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: _isCrypto
-                              ? AppColors.accent
-                              : Colors.transparent,
+                          color: _isCrypto ? p.accent : Colors.transparent,
                           borderRadius: BorderRadius.circular(50),
                         ),
                         child: Center(
@@ -290,8 +282,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               color: _isCrypto
-                                  ? AppColors.background
-                                  : AppColors.textSecondary,
+                                  ? p.textOnAccentButton
+                                  : p.textSecondary,
                             ),
                           ),
                         ),
@@ -303,9 +295,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       onTap: () => setState(() => _isCrypto = false),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: !_isCrypto
-                              ? AppColors.accent
-                              : Colors.transparent,
+                          color: !_isCrypto ? p.accent : Colors.transparent,
                           borderRadius: BorderRadius.circular(50),
                         ),
                         child: Center(
@@ -314,8 +304,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               color: !_isCrypto
-                                  ? AppColors.background
-                                  : AppColors.textSecondary,
+                                  ? p.textOnAccentButton
+                                  : p.textSecondary,
                             ),
                           ),
                         ),
@@ -325,10 +315,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // Amount input
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
@@ -337,8 +324,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 children: [
                   Text(
                     '₹',
-                    style: AppTextStyles.number.copyWith(
-                      color: AppColors.textSecondary,
+                    style: t.number.copyWith(
+                      color: p.textSecondary,
                       fontSize: 28,
                     ),
                   ),
@@ -347,13 +334,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     child: TextField(
                       controller: _amountController,
                       keyboardType: TextInputType.number,
-                      style: AppTextStyles.number.copyWith(fontSize: 48),
+                      style: t.number.copyWith(fontSize: 48),
                       textAlign: TextAlign.center,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: InputBorder.none,
                         hintText: '0',
                         hintStyle: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: p.textSecondary,
                           fontSize: 48,
                         ),
                       ),
@@ -362,22 +349,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             ),
-
             if (_isCrypto && _cryptoEquivalent > 0)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
                   '≈ ${CurrencyFormatter.formatCrypto(_cryptoEquivalent)} ${_selectedCoin.toUpperCase().substring(0, 3)}',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.accent),
+                  style: t.caption.copyWith(color: p.accent),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ).animate().fadeIn(),
-
             const SizedBox(height: 16),
-
-            // Quick amount chips — Wrap avoids horizontal overflow on narrow phones
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 8,
@@ -391,26 +374,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: p.surface,
                       borderRadius: BorderRadius.circular(50),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: p.border),
                     ),
-                    child: Text('₹$amt', style: AppTextStyles.captionMedium),
+                    child: Text('₹$amt', style: t.captionMedium),
                   ),
                 );
               }).toList(),
             ),
-
             const SizedBox(height: 24),
-
-            // Security badge
             GlassCard(
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.shield_rounded,
-                    color: AppColors.accent,
+                    color: p.accent,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -419,7 +399,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       _isCrypto
                           ? 'BLOCKCHAIN VERIFIED TRANSFER'
                           : 'UPI SECURE PAYMENT VIA RAZORPAY',
-                      style: AppTextStyles.caption.copyWith(
+                      style: t.caption.copyWith(
                         fontSize: 10,
                         letterSpacing: 0.5,
                       ),
@@ -430,15 +410,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
-
             KkButton(
               label: _isCrypto ? 'Send Crypto' : 'Pay via Razorpay',
               onTap: _processPayment,
               isLoading: _isProcessing,
             ).animate().fadeIn(delay: 300.ms),
-
             const SizedBox(height: 40),
           ],
         ),

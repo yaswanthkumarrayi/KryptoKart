@@ -3,14 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/service_locator.dart';
+import '../../../core/theme/kk_theme_context.dart';
+import '../../../core/theme/theme_controller.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../../../core/utils/currency_formatter.dart';
-import '../../../shared/widgets/crypto_mini_card.dart';
-import '../../../shared/widgets/transaction_tile.dart';
 import '../../../shared/widgets/coin_list_tile.dart';
 import '../bloc/dashboard_bloc.dart';
 
@@ -19,40 +18,26 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(
           'KryptoKart',
-          style: AppTextStyles.title.copyWith(color: AppColors.accent),
+          style: context.txt.title.copyWith(color: p.accent),
         ),
         actions: [
           IconButton(
-            icon: Stack(
-              children: [
-                const Icon(Icons.notifications_outlined, color: Colors.white),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.red,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ],
+            tooltip: Theme.of(context).brightness == Brightness.dark
+                ? 'Light mode'
+                : 'Dark mode',
+            icon: Icon(
+              Theme.of(context).brightness == Brightness.dark
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+              color: p.accent,
             ),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('No new notifications'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
+            onPressed: () => sl<ThemeController>().toggle(),
           ),
         ],
         centerTitle: false,
@@ -60,11 +45,12 @@ class DashboardScreen extends StatelessWidget {
       body: BlocBuilder<DashboardBloc, DashboardState>(
         builder: (context, state) {
           if (state is DashboardLoading) return _shimmer();
-          if (state is DashboardError)
+          if (state is DashboardError) {
             return KkErrorWidget(
               message: state.message,
               onRetry: () => context.read<DashboardBloc>().add(LoadDashboard()),
             );
+          }
           if (state is DashboardLoaded) return _content(context, state);
           return const SizedBox();
         },
@@ -73,21 +59,22 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _shimmer() => SingleChildScrollView(
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      children: [
-        ShimmerLoader.card(height: 160),
-        const SizedBox(height: 16),
-        ShimmerLoader.card(height: 80),
-        const SizedBox(height: 16),
-        ShimmerLoader.list(count: 3),
-      ],
-    ),
-  );
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            ShimmerLoader.card(height: 160),
+            const SizedBox(height: 16),
+            ShimmerLoader.card(height: 80),
+            const SizedBox(height: 16),
+            ShimmerLoader.list(count: 3),
+          ],
+        ),
+      );
 
   Widget _content(BuildContext context, DashboardLoaded state) {
+    final p = context.palette;
     return RefreshIndicator(
-      color: AppColors.accent,
+      color: p.accent,
       onRefresh: () async => context.read<DashboardBloc>().add(LoadDashboard()),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -95,15 +82,16 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _portfolio(
-              state,
-            ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05),
+            _portfolio(context, state)
+                .animate()
+                .fadeIn(duration: 500.ms)
+                .slideY(begin: 0.05),
             const SizedBox(height: 20),
             _quickActions(context).animate().fadeIn(delay: 200.ms),
             const SizedBox(height: 24),
             _liveRates(context, state).animate().fadeIn(delay: 300.ms),
             const SizedBox(height: 24),
-            _chart(state).animate().fadeIn(delay: 400.ms),
+            _chart(context, state).animate().fadeIn(delay: 400.ms),
             const SizedBox(height: 24),
             _topAssets(context, state).animate().fadeIn(delay: 500.ms),
             const SizedBox(height: 80),
@@ -113,7 +101,9 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _portfolio(DashboardLoaded s) {
+  Widget _portfolio(BuildContext context, DashboardLoaded s) {
+    final p = context.palette;
+    final t = context.txt;
     return GlassCard(
       padding: const EdgeInsets.all(20),
       child: Stack(
@@ -128,7 +118,7 @@ class DashboardScreen extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.accent.withValues(alpha: 0.15),
+                    p.accent.withValues(alpha: 0.15),
                     Colors.transparent,
                   ],
                 ),
@@ -138,11 +128,11 @@ class DashboardScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('TOTAL PORTFOLIO VALUE', style: AppTextStyles.label),
+              Text('TOTAL PORTFOLIO VALUE', style: t.label),
               const SizedBox(height: 4),
               Text(
                 CurrencyFormatter.formatInr(s.user.portfolioValue),
-                style: AppTextStyles.number,
+                style: t.number,
               ),
               const SizedBox(height: 8),
               Container(
@@ -151,22 +141,22 @@ class DashboardScreen extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.green.withValues(alpha: 0.15),
+                  color: p.green.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(50),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.arrow_upward,
-                      color: AppColors.green,
+                      color: p.green,
                       size: 14,
                     ),
                     const SizedBox(width: 2),
                     Text(
                       '+12.4%',
-                      style: AppTextStyles.captionMedium.copyWith(
-                        color: AppColors.green,
+                      style: t.captionMedium.copyWith(
+                        color: p.green,
                       ),
                     ),
                   ],
@@ -175,7 +165,7 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 '🛡 Assets secured in cold storage',
-                style: AppTextStyles.caption,
+                style: t.caption,
               ),
             ],
           ),
@@ -185,6 +175,8 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _quickActions(BuildContext context) {
+    final p = context.palette;
+    final t = context.txt;
     Widget card(IconData icon, String label, Color color, VoidCallback onTap) {
       return Expanded(
         child: GestureDetector(
@@ -193,9 +185,9 @@ class DashboardScreen extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: p.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: p.border),
             ),
             child: Column(
               children: [
@@ -211,7 +203,7 @@ class DashboardScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   label,
-                  style: AppTextStyles.captionMedium,
+                  style: t.captionMedium,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
@@ -228,28 +220,28 @@ class DashboardScreen extends StatelessWidget {
         card(
           Icons.qr_code_scanner_rounded,
           'Scan',
-          AppColors.accent,
+          p.accent,
           () => context.go('/home/scan'),
         ),
         const SizedBox(width: 12),
         card(
           Icons.arrow_upward_rounded,
           'Send',
-          AppColors.accentBlue,
+          p.accentBlue,
           () => context.push('/payment'),
         ),
         const SizedBox(width: 12),
         card(
           Icons.shopping_bag_rounded,
           'Shop',
-          AppColors.green,
+          p.green,
           () => context.push('/shop'),
         ),
         const SizedBox(width: 12),
         card(
           Icons.star_rounded,
           'Wishlist',
-          AppColors.yellow,
+          p.yellow,
           () => context.push('/wishlist'),
         ),
       ],
@@ -257,7 +249,8 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _liveRates(BuildContext context, DashboardLoaded s) {
-    // Define all coins to display with live prices
+    final p = context.palette;
+    final t = context.txt;
     final coinConfigs = [
       {'id': 'bitcoin', 'symbol': 'BTC', 'name': 'Bitcoin'},
       {'id': 'ethereum', 'symbol': 'ETH', 'name': 'Ethereum'},
@@ -275,7 +268,7 @@ class DashboardScreen extends StatelessWidget {
             Expanded(
               child: Text(
                 'Live Market Rates',
-                style: AppTextStyles.titleSmall,
+                style: t.titleSmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -284,7 +277,7 @@ class DashboardScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
+                color: p.accent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Row(
@@ -293,16 +286,16 @@ class DashboardScreen extends StatelessWidget {
                   Container(
                     width: 6,
                     height: 6,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accent,
+                    decoration: BoxDecoration(
+                      color: p.accent,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'LIVE',
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.accent,
+                    style: t.caption.copyWith(
+                      color: p.accent,
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
                     ),
@@ -337,6 +330,8 @@ class DashboardScreen extends StatelessWidget {
     Map<String, dynamic> data,
     BuildContext context,
   ) {
+    final p = context.palette;
+    final t = context.txt;
     final inrPrice = (data['inr'] as num?)?.toDouble() ?? 0.0;
     final change24h = (data['inr_24h_change'] as num?)?.toDouble() ?? 0.0;
     final isPositive = change24h >= 0;
@@ -347,58 +342,54 @@ class DashboardScreen extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.6),
+          color: p.surface.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+          border: Border.all(color: p.border.withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
-            // Coin icon
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.surface2,
+                color: p.surface2,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
                 child: Text(
                   symbol,
-                  style: AppTextStyles.captionMedium.copyWith(
-                    color: AppColors.accent,
+                  style: t.captionMedium.copyWith(
+                    color: p.accent,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            // Name and symbol
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     '$symbol/INR',
-                    style: AppTextStyles.bodyMedium,
+                    style: t.bodyMedium,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     '₹${_formatInrCompact(inrPrice)}',
-                    style: AppTextStyles.caption,
+                    style: t.caption,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            // Change percentage
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (isPositive ? AppColors.green : AppColors.red)
-                      .withValues(alpha: 0.15),
+                  color: (isPositive ? p.green : p.red).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(50),
                 ),
                 child: Text(
@@ -406,7 +397,7 @@ class DashboardScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isPositive ? AppColors.green : AppColors.red,
+                    color: isPositive ? p.green : p.red,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -426,8 +417,9 @@ class DashboardScreen extends StatelessWidget {
     return value.toStringAsFixed(2);
   }
 
-  Widget _chart(DashboardLoaded s) {
-    // Calculate total portfolio value from live data
+  Widget _chart(BuildContext context, DashboardLoaded s) {
+    final p = context.palette;
+    final t = context.txt;
     double totalValue = 0;
     List<FlSpot> portfolioSpots = [];
 
@@ -439,29 +431,24 @@ class DashboardScreen extends StatelessWidget {
       final tetherPrice =
           (s.livePrices!['tether']?['inr'] as num?)?.toDouble() ?? 0;
 
-      // Simulated portfolio holdings (you can replace with real data)
-      const bitcoinHolding = 0.01; // 0.01 BTC
-      const ethereumHolding = 0.5; // 0.5 ETH
-      const tetherHolding = 1000; // 1000 USDT
+      const bitcoinHolding = 0.01;
+      const ethereumHolding = 0.5;
+      const tetherHolding = 1000;
 
       totalValue =
           (bitcoinPrice * bitcoinHolding) +
           (ethereumPrice * ethereumHolding) +
           (tetherPrice * tetherHolding);
 
-      // Generate realistic portfolio growth over 30 days
-      final baseValue = totalValue * 0.85; // Start from 85% of current value
+      final baseValue = totalValue * 0.85;
       portfolioSpots = List.generate(30, (i) {
         final progress = i / 29.0;
         final growth = baseValue + (totalValue - baseValue) * progress;
         final variance =
-            growth *
-            0.05 *
-            (0.5 - (i % 7) / 14.0); // Add some realistic variance
+            growth * 0.05 * (0.5 - (i % 7) / 14.0);
         return FlSpot(i.toDouble(), growth + variance);
       });
     } else {
-      // Fallback spots if no live data
       totalValue = 750000;
       portfolioSpots = List.generate(30, (i) {
         return FlSpot(
@@ -474,7 +461,7 @@ class DashboardScreen extends StatelessWidget {
     final isPositive =
         portfolioSpots.isNotEmpty &&
         portfolioSpots.last.y > portfolioSpots.first.y;
-    final chartColor = isPositive ? AppColors.green : AppColors.red;
+    final chartColor = isPositive ? p.green : p.red;
 
     return GlassCard(
       child: Column(
@@ -485,7 +472,7 @@ class DashboardScreen extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Portfolio Analytics',
-                  style: AppTextStyles.bodyMedium,
+                  style: t.bodyMedium,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -497,20 +484,20 @@ class DashboardScreen extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.1),
+                  color: p.accent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(50),
                 ),
                 child: Text(
                   'MONTHLY',
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.accent,
+                  style: t.caption.copyWith(
+                    color: p.accent,
                     fontSize: 10,
                   ),
                 ),
               ),
             ],
           ),
-          Text('Past 30 days growth', style: AppTextStyles.caption),
+          Text('Past 30 days growth', style: t.caption),
           const SizedBox(height: 16),
           SizedBox(
             height: 160,
@@ -521,7 +508,7 @@ class DashboardScreen extends StatelessWidget {
                 titlesData: const FlTitlesData(show: false),
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (spot) => AppColors.surface2,
+                    getTooltipColor: (spot) => p.surface2,
                   ),
                 ),
                 lineBarsData: [
@@ -558,20 +545,19 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     Text(
                       'PROFIT',
-                      style: AppTextStyles.caption.copyWith(fontSize: 10),
+                      style: t.caption.copyWith(fontSize: 10),
                     ),
                     const SizedBox(height: 2),
                     Builder(
-                      builder: (context) {
+                      builder: (ctx) {
                         final profit = portfolioSpots.isNotEmpty
                             ? portfolioSpots.last.y - portfolioSpots.first.y
                             : 0.0;
+                        final pp = ctx.palette;
                         return Text(
                           '${profit >= 0 ? '+' : ''}₹${_formatNumber(profit.abs())}',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: profit >= 0
-                                ? AppColors.green
-                                : AppColors.red,
+                          style: t.bodyMedium.copyWith(
+                            color: profit >= 0 ? pp.green : pp.red,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -587,12 +573,12 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     Text(
                       'HIGH',
-                      style: AppTextStyles.caption.copyWith(fontSize: 10),
+                      style: t.caption.copyWith(fontSize: 10),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '₹${_formatNumber(portfolioSpots.isNotEmpty ? portfolioSpots.map((s) => s.y).reduce((a, b) => a > b ? a : b) : 0)}',
-                      style: AppTextStyles.bodyMedium,
+                      style: t.bodyMedium,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
@@ -605,12 +591,12 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     Text(
                       'LOW',
-                      style: AppTextStyles.caption.copyWith(fontSize: 10),
+                      style: t.caption.copyWith(fontSize: 10),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '₹${_formatNumber(portfolioSpots.isNotEmpty ? portfolioSpots.map((s) => s.y).reduce((a, b) => a < b ? a : b) : 0)}',
-                      style: AppTextStyles.bodyMedium,
+                      style: t.bodyMedium,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
@@ -626,6 +612,8 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _topAssets(BuildContext context, DashboardLoaded s) {
+    final p = context.palette;
+    final t = context.txt;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -634,7 +622,7 @@ class DashboardScreen extends StatelessWidget {
             Expanded(
               child: Text(
                 'Top Assets',
-                style: AppTextStyles.titleSmall,
+                style: t.titleSmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -643,8 +631,8 @@ class DashboardScreen extends StatelessWidget {
               onTap: () => context.go('/home/markets'),
               child: Text(
                 'VIEW ALL',
-                style: AppTextStyles.captionMedium.copyWith(
-                  color: AppColors.accent,
+                style: t.captionMedium.copyWith(
+                  color: p.accent,
                 ),
               ),
             ),
@@ -657,44 +645,6 @@ class DashboardScreen extends StatelessWidget {
               (c) => CoinListTile(
                 coin: c,
                 onTap: () => context.push('/coin/${c.id}'),
-              ),
-            ),
-      ],
-    );
-  }
-
-  Widget _recent(BuildContext context, DashboardLoaded s) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Recent Activity',
-                style: AppTextStyles.titleSmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            GestureDetector(
-              onTap: () => context.go('/home/activity'),
-              child: Text(
-                'VIEW ALL',
-                style: AppTextStyles.captionMedium.copyWith(
-                  color: AppColors.accent,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ...s.recentTransactions
-            .take(3)
-            .map(
-              (t) => TransactionTile(
-                transaction: t,
-                onTap: () => context.push('/transaction/${t.id}'),
               ),
             ),
       ],
