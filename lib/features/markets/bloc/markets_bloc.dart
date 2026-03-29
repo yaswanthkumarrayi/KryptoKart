@@ -126,7 +126,7 @@ class MarketsBloc extends Bloc<MarketsEvent, MarketsState> {
 
   Future<void> _onLoad(LoadMarkets event, Emitter<MarketsState> emit) async {
     emit(MarketsLoading());
-    
+
     List<CoinModel> coins = [];
     List<String> watchlist = [];
     List<FlSpot> chartData = [];
@@ -158,11 +158,27 @@ class MarketsBloc extends Bloc<MarketsEvent, MarketsState> {
       // Backend unavailable - use local wishlist
     }
 
-    // Fetch chart data for featured coin
+    // Fetch chart data for featured coin (with sparkline fallback)
     try {
       chartData = await _coinGeckoService.fetchMarketChart('bitcoin', days: 7);
     } catch (e) {
       chartData = [];
+    }
+
+    // If chart API failed, use sparkline from the coin data
+    if (chartData.isEmpty && coins.isNotEmpty) {
+      final bitcoin = coins.firstWhere(
+        (c) => c.id == 'bitcoin',
+        orElse: () => coins.first,
+      );
+      if (bitcoin.sparkline7d.isNotEmpty) {
+        chartData = bitcoin.sparkline7d
+            .asMap()
+            .entries
+            .where((e) => e.value > 0)
+            .map((e) => FlSpot(e.key.toDouble(), e.value))
+            .toList();
+      }
     }
 
     // Emit loaded state even if some data is missing
@@ -191,13 +207,13 @@ class MarketsBloc extends Bloc<MarketsEvent, MarketsState> {
   ) async {
     if (state is! MarketsLoaded) return;
     if (_isRefreshing) return; // Prevent concurrent refreshes
-    
+
     final current = state as MarketsLoaded;
     _isRefreshing = true;
-    
+
     try {
       final coins = await _coinGeckoService.fetchMarkets(perPage: 30);
-      
+
       // Only update if we got valid data
       if (coins.isNotEmpty) {
         final filtered = current.searchQuery.isEmpty
@@ -244,21 +260,21 @@ class MarketsBloc extends Bloc<MarketsEvent, MarketsState> {
   ) async {
     if (state is! MarketsLoaded) return;
     final current = state as MarketsLoaded;
-    
+
     // Optimistically update UI immediately
     final isCurrentlyWishlisted = current.watchlist.contains(event.coinId);
     final newWatchlist = List<String>.from(current.watchlist);
-    
+
     if (isCurrentlyWishlisted) {
       newWatchlist.remove(event.coinId);
     } else {
       newWatchlist.add(event.coinId);
     }
-    
+
     // Update local wishlist and emit state immediately
     await _wishlistService.toggleWishlist(event.coinId);
     emit(current.copyWith(watchlist: newWatchlist));
-    
+
     // Try to sync with backend (non-blocking)
     try {
       final result = await _apiService.toggleWatchlist(event.coinId);
@@ -277,15 +293,37 @@ class MarketsBloc extends Bloc<MarketsEvent, MarketsState> {
   ) async {
     if (state is! MarketsLoaded) return;
     final current = state as MarketsLoaded;
+    
     try {
-      final chartData = await _coinGeckoService.fetchMarketChart(
+      var chartData = await _coinGeckoService.fetchMarketChart(
         event.coinId,
         days: event.days,
       );
-      emit(
-        current.copyWith(chartData: chartData, featuredCoinId: event.coinId),
-      );
-    } catch (_) {}
+      
+      // If chart API failed, try sparkline fallback
+      if (chartData.isEmpty) {
+        final coin = current.coins.firstWhere(
+          (c) => c.id == event.coinId,
+          orElse: () => current.coins.first,
+        );
+        if (coin.sparkline7d.isNotEmpty) {
+          chartData = coin.sparkline7d
+              .asMap()
+              .entries
+              .where((e) => e.value > 0)
+              .map((e) => FlSpot(e.key.toDouble(), e.value))
+              .toList();
+        }
+      }
+      
+      if (chartData.isNotEmpty) {
+        emit(
+          current.copyWith(chartData: chartData, featuredCoinId: event.coinId),
+        );
+      }
+    } catch (_) {
+      // Keep existing chart data on error
+    }
   }
 
   @override

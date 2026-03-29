@@ -21,12 +21,18 @@ class CoinListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = coin.priceChange24h >= 0;
+    final showWatchlist = onWatchlistTap != null;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: EdgeInsets.only(
+          left: 14,
+          top: 12,
+          bottom: 12,
+          right: showWatchlist ? 8 : 8,
+        ),
         decoration: BoxDecoration(
           color: AppColors.surface.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(16),
@@ -63,7 +69,11 @@ class CoinListTile extends StatelessWidget {
                   width: 36,
                   height: 36,
                   color: AppColors.surface2,
-                  child: const Icon(Icons.currency_bitcoin, color: AppColors.accent, size: 20),
+                  child: const Icon(
+                    Icons.currency_bitcoin,
+                    color: AppColors.accent,
+                    size: 20,
+                  ),
                 ),
               ),
             ),
@@ -75,7 +85,9 @@ class CoinListTile extends StatelessWidget {
                 children: [
                   Text(
                     coin.symbol,
-                    style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
                     coin.name,
@@ -87,41 +99,47 @@ class CoinListTile extends StatelessWidget {
               ),
             ),
             // Price and change
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    coin.priceFormatted,
-                    style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  coin.priceFormatted,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
-                  Text(
-                    coin.changeFormatted,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isPositive ? AppColors.green : AppColors.red,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                ),
+                Text(
+                  coin.changeFormatted,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isPositive ? AppColors.green : AppColors.red,
                   ),
-                ],
-              ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            // Watchlist star
-            GestureDetector(
-              onTap: onWatchlistTap,
-              child: Icon(
-                isWatchlisted ? Icons.star_rounded : Icons.star_border_rounded,
-                color: isWatchlisted ? AppColors.yellow : AppColors.textSecondary,
-                size: 22,
+            // Watchlist star - only show if callback provided
+            if (showWatchlist) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onWatchlistTap,
+                child: Icon(
+                  isWatchlisted
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
+                  color: isWatchlisted
+                      ? AppColors.yellow
+                      : AppColors.textSecondary,
+                  size: 22,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

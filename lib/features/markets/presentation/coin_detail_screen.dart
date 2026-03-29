@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/kk_button.dart';
 import '../../../core/widgets/kk_text_field.dart';
 import '../../../shared/models/coin_model.dart';
+import '../../../shared/models/transaction_model.dart';
 import '../../../shared/services/coingecko_service.dart';
 import '../../../shared/services/wishlist_service.dart';
+import '../../../shared/services/wallet_service.dart';
+import '../../../shared/services/api_service.dart';
 import '../../../core/service_locator.dart';
+import '../../../core/utils/wallet_display.dart';
 
 class CoinDetailScreen extends StatefulWidget {
   final String coinId;
@@ -22,6 +28,8 @@ class CoinDetailScreen extends StatefulWidget {
 class _CoinDetailScreenState extends State<CoinDetailScreen> {
   final _coinGecko = sl<CoinGeckoService>();
   final _wishlistService = sl<WishlistService>();
+  final _walletService = sl<WalletService>();
+  final _apiService = sl<ApiService>();
   final _inrController = TextEditingController();
   final _cryptoController = TextEditingController();
 
@@ -34,6 +42,9 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
   bool _isWishlisted = false;
   bool _isLoadingChart = false;
   int _currentChartRequest = 0; // For request cancellation
+  String? _errorMessage;
+  bool _hasPartialData =
+      false; // Track if we have some data even if not complete
 
   @override
   void initState() {
@@ -73,9 +84,11 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
     }
 
     final inrAmount = double.tryParse(inrText);
-    if (inrAmount == null || _liveData == null) return;
+    if (inrAmount == null) return;
 
-    final inrPrice = (_liveData?['inr'] as num?)?.toDouble();
+    // Use live data price or fall back to coin's current price
+    final inrPrice =
+        (_liveData?['inr'] as num?)?.toDouble() ?? _coin?.currentPrice;
     if (inrPrice == null || inrPrice == 0) return;
 
     _isUpdatingConverter = true;
@@ -85,80 +98,129 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     CoinModel? coin;
     List<FlSpot> chart = [];
     Map<String, dynamic>? liveData;
 
-    // Fetch live price data
+    // 1. Try to get coin from cached market data first (instant)
+    coin = _coinGecko.getCoinFromCache(widget.coinId);
+    if (coin != null && coin.currentPrice > 0) {
+      _hasPartialData = true;
+      // Use sparkline as initial chart data
+      chart = _coinGecko.getSparklineAsChart(coin);
+    }
+
+    // 2. Fetch live price data
     try {
       final priceData = await _coinGecko.fetchSimplePrice([widget.coinId]);
       liveData = priceData[widget.coinId] as Map<String, dynamic>?;
     } catch (e) {
-      liveData = null;
+      // Use cached coin price as fallback
+      if (coin != null && coin.currentPrice > 0) {
+        liveData = {
+          'inr': coin.currentPrice,
+          'inr_24h_change': coin.priceChange24h,
+        };
+      }
     }
 
-    // Fetch chart data
+    // 3. Fetch chart data for selected period
     try {
-      chart = await _coinGecko.fetchMarketChart(
+      final chartResult = await _coinGecko.fetchMarketChart(
         widget.coinId,
         days: _selectedDays,
       );
+      if (chartResult.isNotEmpty) {
+        chart = chartResult;
+      }
     } catch (e) {
-      chart = [];
+      // Keep sparkline chart as fallback
     }
 
-    // Fetch coin details
-    try {
-      final coins = await _coinGecko.fetchMarkets(perPage: 50);
-      coin = coins.firstWhere(
-        (c) => c.id == widget.coinId,
-        orElse: () => CoinModel(
-          id: widget.coinId,
-          symbol: _getCoinSymbol(widget.coinId),
-          name: _getCoinName(widget.coinId),
-          imageUrl: '',
-          currentPrice: (liveData?['inr'] as num?)?.toDouble() ?? 0,
-          priceChange24h: (liveData?['inr_24h_change'] as num?)?.toDouble() ?? 0,
-          marketCap: 0,
-        ),
-      );
-    } catch (e) {
-      // Create fallback coin from live data
-      coin = CoinModel(
-        id: widget.coinId,
-        symbol: _getCoinSymbol(widget.coinId),
-        name: _getCoinName(widget.coinId),
-        imageUrl: '',
-        currentPrice: (liveData?['inr'] as num?)?.toDouble() ?? 0,
-        priceChange24h: (liveData?['inr_24h_change'] as num?)?.toDouble() ?? 0,
-        marketCap: 0,
-      );
+    // 4. If we still don't have a coin, fetch from markets
+    if (coin == null || coin.currentPrice == 0) {
+      try {
+        final coins = await _coinGecko.fetchMarkets(perPage: 100);
+        coin = coins.firstWhere(
+          (c) => c.id == widget.coinId,
+          orElse: () => _createFallbackCoin(liveData),
+        );
+      } catch (e) {
+        coin = _createFallbackCoin(liveData);
+      }
+    }
+
+    // 5. Update coin with live data if available
+    if (liveData != null && coin != null) {
+      final livePrice = (liveData['inr'] as num?)?.toDouble();
+      final liveChange = (liveData['inr_24h_change'] as num?)?.toDouble();
+
+      if (livePrice != null && livePrice > 0) {
+        coin = CoinModel(
+          id: coin.id,
+          symbol: coin.symbol,
+          name: coin.name,
+          imageUrl: coin.imageUrl,
+          currentPrice: livePrice,
+          priceChange24h: liveChange ?? coin.priceChange24h,
+          marketCap: coin.marketCap,
+          sparkline7d: coin.sparkline7d,
+        );
+      }
     }
 
     if (mounted) {
+      final hasAnyData =
+          (liveData != null &&
+              (liveData['inr'] as num?)?.toDouble() != null &&
+              (liveData['inr'] as num).toDouble() > 0) ||
+          (coin != null && coin.currentPrice > 0);
+
       setState(() {
         _coin = coin;
         _chartData = chart;
         _liveData = liveData;
         _isLoading = false;
+        _hasPartialData = hasAnyData;
+        _errorMessage = hasAnyData
+            ? null
+            : 'Unable to load data for this coin. Please try again.';
       });
     }
+  }
+
+  CoinModel _createFallbackCoin(Map<String, dynamic>? liveData) {
+    return CoinModel(
+      id: widget.coinId,
+      symbol: _getCoinSymbol(widget.coinId),
+      name: _getCoinName(widget.coinId),
+      imageUrl: '',
+      currentPrice: (liveData?['inr'] as num?)?.toDouble() ?? 0,
+      priceChange24h: (liveData?['inr_24h_change'] as num?)?.toDouble() ?? 0,
+      marketCap: 0,
+    );
   }
 
   /// Load only chart data with request cancellation to prevent race conditions
   Future<void> _loadChartOnly(int days) async {
     final requestId = ++_currentChartRequest;
-    
+
     setState(() {
       _selectedDays = days;
       _isLoadingChart = true;
     });
 
     try {
-      final chart = await _coinGecko.fetchMarketChart(widget.coinId, days: days);
-      
+      final chart = await _coinGecko.fetchMarketChart(
+        widget.coinId,
+        days: days,
+      );
+
       // Only update if this is still the latest request
       if (mounted && requestId == _currentChartRequest) {
         setState(() {
@@ -181,116 +243,210 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('$coinName ($coinSymbol)', style: AppTextStyles.titleSmall),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isWishlisted ? Icons.star_rounded : Icons.star_border_rounded,
+              color: _isWishlisted ? AppColors.yellow : Colors.white,
+            ),
+            onPressed: _toggleWishlist,
+          ),
+        ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.accent),
+      body: _buildBody(coinSymbol),
+    );
+  }
+  
+  Widget _buildBody(String coinSymbol) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.accent),
+      );
+    }
+    
+    // Show error only if we have no data at all
+    if (_errorMessage != null && !_hasPartialData) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: AppColors.red.withValues(alpha: 0.6),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: _loadData,
+                icon: const Icon(Icons.refresh, color: AppColors.accent),
+                label: Text(
+                  'Retry',
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.accent),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Get the price from live data or coin
+    final displayPrice = (_liveData?['inr'] as num?)?.toDouble() ?? _coin?.currentPrice ?? 0;
+    final displayChange = (_liveData?['inr_24h_change'] as num?)?.toDouble() ?? _coin?.priceChange24h ?? 0;
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Price hero
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  '₹${_formatInrPrice(displayPrice)}',
+                  style: AppTextStyles.number.copyWith(fontSize: 40),
+                ).animate().fadeIn(),
+                const SizedBox(height: 8),
+                _buildChangeChip(displayChange),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Time filter chips
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [1, 7, 30, 90, 365].map((d) {
+              final label = d == 1
+                  ? '1D'
+                  : d == 7
+                  ? '7D'
+                  : d == 30
+                  ? '1M'
+                  : d == 90
+                  ? '3M'
+                  : '1Y';
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  label: Text(label),
+                  selected: _selectedDays == d,
+                  selectedColor: AppColors.accent.withValues(alpha: 0.2),
+                  onSelected: (_) {
+                    if (_selectedDays != d) {
+                      _loadChartOnly(d);
+                    }
+                  },
+                  side: BorderSide(
+                    color: _selectedDays == d
+                        ? AppColors.accent
+                        : AppColors.border,
+                  ),
+                  labelStyle: TextStyle(
+                    color: _selectedDays == d
+                        ? AppColors.accent
+                        : AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Chart with loading state
+          if (_isLoadingChart)
+            const SizedBox(
+              height: 200,
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.accent),
+              ),
             )
-          : _liveData == null
-          ? const Center(child: Text('Coin data not available'))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Price hero
-                  Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          '₹${_formatInrPrice((_liveData!['inr'] as num?)?.toDouble() ?? 0)}',
-                          style: AppTextStyles.number.copyWith(fontSize: 40),
-                        ).animate().fadeIn(),
-                        const SizedBox(height: 8),
-                        _buildChangeChip(),
-                      ],
-                    ),
-                  ),
+          else if (_chartData.isNotEmpty)
+            _buildChart()
+          else
+            _buildEmptyChart(),
 
-                  const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-                  // Time filter chips
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [1, 7, 30, 90, 365].map((d) {
-                      final label = d == 1
-                          ? '1D'
-                          : d == 7
-                          ? '7D'
-                          : d == 30
-                          ? '1M'
-                          : d == 90
-                          ? '3M'
-                          : '1Y';
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: ChoiceChip(
-                          label: Text(label),
-                          selected: _selectedDays == d,
-                          selectedColor: AppColors.accent.withValues(
-                            alpha: 0.2,
-                          ),
-                          onSelected: (_) {
-                            if (_selectedDays != d) {
-                              _loadChartOnly(d);
-                            }
-                          },
-                          side: BorderSide(
-                            color: _selectedDays == d
-                                ? AppColors.accent
-                                : AppColors.border,
-                          ),
-                          labelStyle: TextStyle(
-                            color: _selectedDays == d
-                                ? AppColors.accent
-                                : AppColors.textSecondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+          // Stats grid
+          Row(
+            children: [
+              Expanded(
+                child: _statCard('Market Cap', _formatMarketCap()),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: _statCard('24h Change', _formatChange(displayChange))),
+            ],
+          ),
 
-                  const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-                  // Chart
-                  if (_chartData.isNotEmpty) _buildChart(),
+          // INR to Crypto Converter
+          _buildConverter(coinSymbol),
 
-                  const SizedBox(height: 24),
+          const SizedBox(height: 24),
 
-                  // Stats grid
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _statCard('Market Cap', _formatMarketCap()),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(child: _statCard('24h Change', _formatChange())),
-                    ],
-                  ),
+          KkButton(
+            label: 'Buy / Pay with $coinSymbol',
+            onTap: () => _showPaymentModal(displayPrice),
+            icon: Icons.shopping_cart_rounded,
+          ),
 
-                  const SizedBox(height: 24),
-
-                  // INR to Crypto Converter
-                  _buildConverter(coinSymbol),
-
-                  const SizedBox(height: 24),
-
-                  KkButton(
-                    label: 'Buy / Pay with $coinSymbol',
-                    onTap: () {},
-                    icon: Icons.shopping_cart_rounded,
-                  ),
-
-                  const SizedBox(height: 40),
-                ],
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildEmptyChart() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.show_chart_rounded,
+              size: 48,
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Chart data unavailable',
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildChangeChip() {
-    final change24h = (_liveData!['inr_24h_change'] as num?)?.toDouble() ?? 0.0;
+  Widget _buildChangeChip(double change24h) {
     final isPositive = change24h >= 0;
 
     return Container(
@@ -361,9 +517,16 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.currency_exchange, color: AppColors.accent, size: 18),
+              const Icon(
+                Icons.currency_exchange,
+                color: AppColors.accent,
+                size: 18,
+              ),
               const SizedBox(width: 8),
-              Text('INR to $coinSymbol Converter', style: AppTextStyles.titleSmall),
+              Text(
+                'INR to $coinSymbol Converter',
+                style: AppTextStyles.titleSmall,
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -374,16 +537,25 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
                   label: 'INR',
                   hint: 'Enter amount',
                   controller: _inrController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   prefix: const Text(
                     '₹',
-                    style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.arrow_forward, color: AppColors.accent, size: 20),
+                child: Icon(
+                  Icons.arrow_forward,
+                  color: AppColors.accent,
+                  size: 20,
+                ),
               ),
               Flexible(
                 child: KkTextField(
@@ -394,7 +566,10 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
                   readOnly: true,
                   suffix: Text(
                     coinSymbol,
-                    style: const TextStyle(color: AppColors.accent, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.accent,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),
@@ -403,7 +578,10 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
           const SizedBox(height: 10),
           Text(
             'Enter INR amount to convert',
-            style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.textSecondary),
+            style: AppTextStyles.caption.copyWith(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -423,30 +601,66 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
     );
   }
 
+  // Extended coin mappings for common coins
+  static const Map<String, String> _coinNames = {
+    'bitcoin': 'Bitcoin',
+    'ethereum': 'Ethereum',
+    'tether': 'Tether',
+    'binancecoin': 'Binance Coin',
+    'solana': 'Solana',
+    'ripple': 'XRP',
+    'cardano': 'Cardano',
+    'dogecoin': 'Dogecoin',
+    'matic-network': 'Polygon',
+    'polkadot': 'Polkadot',
+    'litecoin': 'Litecoin',
+    'avalanche-2': 'Avalanche',
+    'chainlink': 'Chainlink',
+    'uniswap': 'Uniswap',
+    'stellar': 'Stellar',
+    'wrapped-bitcoin': 'Wrapped Bitcoin',
+    'cosmos': 'Cosmos',
+    'monero': 'Monero',
+  };
+  
+  static const Map<String, String> _coinSymbols = {
+    'bitcoin': 'BTC',
+    'ethereum': 'ETH',
+    'tether': 'USDT',
+    'binancecoin': 'BNB',
+    'solana': 'SOL',
+    'ripple': 'XRP',
+    'cardano': 'ADA',
+    'dogecoin': 'DOGE',
+    'matic-network': 'MATIC',
+    'polkadot': 'DOT',
+    'litecoin': 'LTC',
+    'avalanche-2': 'AVAX',
+    'chainlink': 'LINK',
+    'uniswap': 'UNI',
+    'stellar': 'XLM',
+    'wrapped-bitcoin': 'WBTC',
+    'cosmos': 'ATOM',
+    'monero': 'XMR',
+  };
+
   String _getCoinName(String coinId) {
-    switch (coinId) {
-      case 'bitcoin':
-        return 'Bitcoin';
-      case 'ethereum':
-        return 'Ethereum';
-      case 'tether':
-        return 'Tether';
-      default:
-        return coinId.substring(0, 1).toUpperCase() + coinId.substring(1);
+    // First check if we have the coin loaded
+    if (_coin != null && _coin!.name.isNotEmpty) {
+      return _coin!.name;
     }
+    // Fall back to hardcoded mapping
+    return _coinNames[coinId] ?? 
+           coinId.split('-').map((w) => w[0].toUpperCase() + w.substring(1)).join(' ');
   }
 
   String _getCoinSymbol(String coinId) {
-    switch (coinId) {
-      case 'bitcoin':
-        return 'BTC';
-      case 'ethereum':
-        return 'ETH';
-      case 'tether':
-        return 'USDT';
-      default:
-        return coinId.toUpperCase();
+    // First check if we have the coin loaded
+    if (_coin != null && _coin!.symbol.isNotEmpty) {
+      return _coin!.symbol;
     }
+    // Fall back to hardcoded mapping
+    return _coinSymbols[coinId] ?? coinId.toUpperCase().replaceAll('-', '');
   }
 
   String _formatInrPrice(double price) {
@@ -466,9 +680,359 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
     return '₹${(marketCap * 83).toStringAsFixed(0)}';
   }
 
-  String _formatChange() {
-    final change = (_liveData!['inr_24h_change'] as num?)?.toDouble() ?? 0.0;
+  String _formatChange(double change) {
     final sign = change >= 0 ? '+' : '';
     return '$sign${change.toStringAsFixed(2)}%';
+  }
+
+  /// Show payment modal for buying/paying with crypto
+  void _showPaymentModal(double currentPriceInr) {
+    final paymentAmountController = TextEditingController();
+    final cryptoAmountController = TextEditingController();
+    bool isProcessing = false;
+    String? errorMessage;
+    double cryptoAmount = 0;
+
+    void updateCryptoAmount(String inrText) {
+      final inrAmount = double.tryParse(inrText) ?? 0;
+      if (inrAmount > 0 && currentPriceInr > 0) {
+        cryptoAmount = inrAmount / currentPriceInr;
+        cryptoAmountController.text = cryptoAmount.toStringAsFixed(8);
+      } else {
+        cryptoAmountController.clear();
+        cryptoAmount = 0;
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              20,
+              20,
+              MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          color: AppColors.accent,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Pay with ${_getCoinSymbol(widget.coinId)}',
+                              style: AppTextStyles.titleSmall,
+                            ),
+                            Text(
+                              'Via MetaMask',
+                              style: AppTextStyles.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Wallet status
+                  GlassCard(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _walletService.isConnected
+                              ? Icons.check_circle_rounded
+                              : Icons.account_balance_wallet_outlined,
+                          color: _walletService.isConnected
+                              ? AppColors.green
+                              : AppColors.textSecondary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _walletService.isConnected
+                                ? 'Connected: ${shortenWalletAddress(_walletService.connectedAddress)}'
+                                : 'Wallet not connected',
+                            style: AppTextStyles.bodyMedium,
+                          ),
+                        ),
+                        if (!_walletService.isConnected)
+                          TextButton(
+                            onPressed: () async {
+                              setSheetState(() => isProcessing = true);
+                              try {
+                                await _walletService.connectMetaMask();
+                                if (ctx.mounted) {
+                                  setSheetState(() {
+                                    isProcessing = false;
+                                    errorMessage = null;
+                                  });
+                                }
+                              } catch (e) {
+                                if (ctx.mounted) {
+                                  setSheetState(() {
+                                    isProcessing = false;
+                                    errorMessage = 'Failed to connect wallet';
+                                  });
+                                }
+                              }
+                            },
+                            child: const Text(
+                              'Connect',
+                              style: TextStyle(color: AppColors.accent),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Amount input
+                  KkTextField(
+                    label: 'Amount in INR',
+                    hint: 'Enter amount',
+                    controller: paymentAmountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    prefix: const Text(
+                      '₹',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onChanged: (val) {
+                      setSheetState(() {
+                        updateCryptoAmount(val);
+                        errorMessage = null;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Converted crypto amount
+                  GlassCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'You pay',
+                          style: AppTextStyles.caption,
+                        ),
+                        Text(
+                          '${cryptoAmountController.text.isEmpty ? "0.00000000" : cryptoAmountController.text} ${_getCoinSymbol(widget.coinId)}',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.accent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Rate info
+                  Text(
+                    '1 ${_getCoinSymbol(widget.coinId)} = ₹${_formatInrPrice(currentPriceInr)}',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: AppColors.red, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              errorMessage!,
+                              style: AppTextStyles.caption.copyWith(color: AppColors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 20),
+
+                  // Pay button
+                  KkButton(
+                    label: isProcessing ? 'Processing...' : 'Pay with MetaMask',
+                    icon: Icons.send_rounded,
+                    isLoading: isProcessing,
+                    onTap: isProcessing ? null : () async {
+                      final inrAmount = double.tryParse(paymentAmountController.text) ?? 0;
+                      if (inrAmount <= 0) {
+                        setSheetState(() => errorMessage = 'Please enter a valid amount');
+                        return;
+                      }
+
+                      if (!_walletService.isConnected) {
+                        setSheetState(() => errorMessage = 'Please connect your wallet first');
+                        return;
+                      }
+
+                      if (cryptoAmount <= 0) {
+                        setSheetState(() => errorMessage = 'Invalid conversion amount');
+                        return;
+                      }
+
+                      setSheetState(() {
+                        isProcessing = true;
+                        errorMessage = null;
+                      });
+
+                      // Only ETH-based coins can be paid directly
+                      // For non-ETH coins, we'll use ETH equivalent
+                      final coinId = widget.coinId.toLowerCase();
+                      final isEthBased = coinId == 'ethereum' || 
+                                         coinId == 'matic-network' ||
+                                         coinId == 'binancecoin';
+
+                      double payableAmount = cryptoAmount;
+                      
+                      // If not ETH-based, convert to ETH first
+                      if (!isEthBased) {
+                        try {
+                          final ethPrice = await _coinGecko.fetchSimplePrice(['ethereum']);
+                          final ethInr = (ethPrice['ethereum']?['inr'] as num?)?.toDouble() ?? 0;
+                          if (ethInr > 0) {
+                            payableAmount = inrAmount / ethInr;
+                          }
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            setSheetState(() {
+                              isProcessing = false;
+                              errorMessage = 'Failed to get ETH price for conversion';
+                            });
+                          }
+                          return;
+                        }
+                      }
+
+                      // Send the transaction
+                      final result = await _walletService.payWithCrypto(
+                        cryptoAmount: payableAmount,
+                      );
+
+                      if (!ctx.mounted) return;
+
+                      if (result.success) {
+                        // Record transaction
+                        try {
+                          final txnId = 'TXN-${const Uuid().v4().substring(0, 8).toUpperCase()}';
+                          final txnData = await _apiService.createTransaction({
+                            'txnId': txnId,
+                            'type': 'crypto',
+                            'amountInr': inrAmount,
+                            'cryptoCoin': widget.coinId,
+                            'cryptoAmount': cryptoAmount,
+                            'recipientName': 'Crypto Payment',
+                            'recipientAddress': _walletService.defaultReceiverWallet,
+                            'status': 'success',
+                            'txHash': result.transactionHash,
+                          });
+
+                          Navigator.pop(ctx);
+                          
+                          if (mounted) {
+                            final txn = TransactionModel.fromJson(txnData['transaction']);
+                            context.push('/receipt', extra: txn);
+                          }
+                        } catch (e) {
+                          // Transaction succeeded but record failed
+                          Navigator.pop(ctx);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Payment sent! Hash: ${result.transactionHash?.substring(0, 16)}...',
+                                ),
+                                backgroundColor: AppColors.green,
+                              ),
+                            );
+                          }
+                        }
+                      } else {
+                        setSheetState(() {
+                          isProcessing = false;
+                          errorMessage = result.errorMessage ?? 'Transaction failed';
+                        });
+                      }
+                    },
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Cancel button
+                  TextButton(
+                    onPressed: isProcessing ? null : () => Navigator.pop(ctx),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: isProcessing
+                            ? AppColors.textSecondary.withValues(alpha: 0.5)
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

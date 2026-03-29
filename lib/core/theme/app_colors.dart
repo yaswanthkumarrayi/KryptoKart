@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   AppColors._();
-
+  static const Color primary = Color.fromARGB(255, 0, 0, 0);
   // ── Core backgrounds (true black, like Coinbase / Kraken) ──────────────
   static const Color background  = Color(0xFF000000); // pure black
   static const Color surface     = Color(0xFF111111); // card surface

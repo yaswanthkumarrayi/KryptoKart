@@ -345,7 +345,7 @@ class DashboardScreen extends StatelessWidget {
       onTap: () => context.push('/coin/$coinId'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.only(left: 14, top: 14, bottom: 14, right: 8),
         decoration: BoxDecoration(
           color: AppColors.surface.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(16),
@@ -393,24 +393,22 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             // Change percentage
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: (isPositive ? AppColors.green : AppColors.red)
-                      .withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(50),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: (isPositive ? AppColors.green : AppColors.red)
+                    .withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Text(
+                '${isPositive ? '+' : ''}${change24h.toStringAsFixed(2)}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isPositive ? AppColors.green : AppColors.red,
                 ),
-                child: Text(
-                  '${isPositive ? '+' : ''}${change24h.toStringAsFixed(2)}%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isPositive ? AppColors.green : AppColors.red,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

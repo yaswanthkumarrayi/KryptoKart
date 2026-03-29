@@ -8,6 +8,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/error_widget.dart';
+import '../../../shared/models/coin_model.dart';
 import '../../../shared/widgets/coin_list_tile.dart';
 import '../bloc/markets_bloc.dart';
 
@@ -18,7 +19,10 @@ class MarketsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () => context.go('/home'),
+        ),
         title: Text(
           'Markets',
           style: AppTextStyles.title.copyWith(color: AppColors.accent),
@@ -154,41 +158,7 @@ class MarketsScreen extends StatelessWidget {
                     style: AppTextStyles.caption,
                   ),
                   const SizedBox(height: 16),
-                  if (state.chartData.isNotEmpty)
-                    SizedBox(
-                      height: 140,
-                      child: LineChart(
-                        LineChartData(
-                          gridData: const FlGridData(show: false),
-                          borderData: FlBorderData(show: false),
-                          titlesData: const FlTitlesData(show: false),
-                          lineTouchData: const LineTouchData(enabled: false),
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: state.chartData,
-                              isCurved: true,
-                              color: chartColor,
-                              barWidth: 2,
-                              isStrokeCapRound: true,
-                              dotData: const FlDotData(show: false),
-                              belowBarData: BarAreaData(
-                                show: true,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    chartColor.withValues(alpha: 0.3),
-                                    chartColor.withValues(alpha: 0.1),
-                                    Colors.transparent,
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        duration: const Duration(milliseconds: 400),
-                      ),
-                    ),
+                  _buildFeaturedChart(state, chartColor, featuredCoin),
                 ],
               ),
             ).animate().fadeIn(delay: 100.ms),
@@ -228,6 +198,91 @@ class MarketsScreen extends StatelessWidget {
 
           const SizedBox(height: 80),
         ],
+      ),
+    );
+  }
+  
+  Widget _buildFeaturedChart(MarketsLoaded state, Color chartColor, CoinModel featuredCoin) {
+    // Use chart data if available, otherwise fall back to sparkline
+    List<FlSpot> chartData = state.chartData;
+    
+    // If chart data is empty, try to use sparkline
+    if (chartData.isEmpty && featuredCoin.sparkline7d.isNotEmpty) {
+      chartData = featuredCoin.sparkline7d
+          .asMap()
+          .entries
+          .where((e) => e.value > 0)
+          .map((e) => FlSpot(e.key.toDouble(), e.value))
+          .toList();
+    }
+    
+    // Still empty? Show placeholder
+    if (chartData.length < 2) {
+      return Container(
+        height: 140,
+        decoration: BoxDecoration(
+          color: AppColors.surface.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.show_chart_rounded,
+                size: 32,
+                color: AppColors.textSecondary.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Chart loading...',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Recalculate chart color based on actual data
+    final actualColor = chartData.last.y > chartData.first.y 
+        ? AppColors.green 
+        : AppColors.red;
+    
+    return SizedBox(
+      height: 140,
+      child: LineChart(
+        LineChartData(
+          gridData: const FlGridData(show: false),
+          borderData: FlBorderData(show: false),
+          titlesData: const FlTitlesData(show: false),
+          lineTouchData: const LineTouchData(enabled: false),
+          lineBarsData: [
+            LineChartBarData(
+              spots: chartData,
+              isCurved: true,
+              color: actualColor,
+              barWidth: 2,
+              isStrokeCapRound: true,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    actualColor.withValues(alpha: 0.3),
+                    actualColor.withValues(alpha: 0.1),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(milliseconds: 400),
       ),
     );
   }

@@ -11,6 +11,7 @@ import '../../../shared/models/user_model.dart';
 import '../../../shared/models/product_model.dart';
 import '../../../shared/services/api_service.dart';
 import '../../../shared/services/wallet_service.dart';
+import '../../../shared/widgets/profile_card.dart';
 import '../../../core/service_locator.dart';
 import '../../../core/utils/wallet_display.dart';
 import '../../auth/bloc/auth_bloc.dart';
@@ -337,48 +338,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   outlined: walletService.isConnected,
                   height: 44,
                   onTap: () async {
-                  if (walletService.isConnected) {
-                    await walletService.disconnect();
-                  } else {
-                    await walletService.connectMetaMask();
-                    if (walletService.isConnected &&
-                        _apiService.isAuthenticated) {
-                      try {
-                        await _apiService.updateWallet(
-                          walletService.connectedAddress!,
-                        );
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Wallet saved: ${shortenWalletAddress(walletService.connectedAddress)}',
+                    if (walletService.isConnected) {
+                      await walletService.disconnect();
+                    } else {
+                      await walletService.connectMetaMask();
+                      if (walletService.isConnected &&
+                          _apiService.isAuthenticated) {
+                        try {
+                          await _apiService.updateWallet(
+                            walletService.connectedAddress!,
+                          );
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Wallet saved: ${shortenWalletAddress(walletService.connectedAddress)}',
+                                ),
+                                backgroundColor: AppColors.green,
                               ),
-                              backgroundColor: AppColors.green,
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                              content: Text('Could not save wallet to account: $e'),
-                              backgroundColor: AppColors.red,
-                            ),
-                          );
+                            );
+                          }
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Could not save wallet to account: $e',
+                                ),
+                                backgroundColor: AppColors.red,
+                              ),
+                            );
+                          }
                         }
                       }
                     }
-                  }
-                  setSheetState(() {}); // Refresh the bottom sheet
-                  setState(() {}); // Refresh the profile screen
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
+                    setSheetState(() {}); // Refresh the bottom sheet
+                    setState(() {}); // Refresh the profile screen
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -481,39 +484,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Profile card
-                    GlassCard(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 40,
-                            backgroundColor: AppColors.surface2,
-                            child: Text(
-                              u.name.isNotEmpty ? u.name[0].toUpperCase() : 'U',
-                              style: AppTextStyles.display.copyWith(
-                                color: AppColors.accent,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(u.name, style: AppTextStyles.title),
-                          Text(
-                            u.phone.isEmpty ? '—' : u.phone,
-                            style: AppTextStyles.caption,
-                          ),
-                          if (u.upiId.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              u.upiId,
-                              style: AppTextStyles.captionMedium.copyWith(
-                                color: AppColors.accent,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ).animate().fadeIn(),
+                    // Premium Profile Card using flutter_credit_card
+                    ProfileCard(
+                      user: u,
+                      onSave: (name, cardNumber) async {
+                        // Update user name if changed
+                        if (name.isNotEmpty && name.toUpperCase() != u.name.toUpperCase()) {
+                          try {
+                            await _apiService.updateProfile({'name': name});
+                            _loadProfile(); // Refresh profile
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Profile updated successfully'),
+                                  backgroundColor: AppColors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to update profile: $e'),
+                                  backgroundColor: AppColors.red,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -927,80 +927,80 @@ class _ManageProductsPageState extends State<_ManageProductsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Add Product', style: AppTextStyles.titleSmall),
-            const SizedBox(height: 16),
-            TextField(
-              controller: nameC,
-              decoration: const InputDecoration(labelText: 'Product Name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: priceC,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Price (INR)'),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: barcodeC,
-                    decoration: const InputDecoration(labelText: 'Barcode'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(
-                    Icons.qr_code_scanner,
-                    color: AppColors.accent,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _openScanner();
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: categoryC,
-              decoration: const InputDecoration(
-                labelText: 'Category (optional)',
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameC,
+                decoration: const InputDecoration(labelText: 'Product Name'),
               ),
-            ),
-            const SizedBox(height: 20),
-            KkButton(
-              label: 'Add Product',
-              onTap: () async {
-                if (nameC.text.isEmpty) return;
-                try {
-                  await _api.createProduct({
-                    'name': nameC.text,
-                    'priceInr': double.tryParse(priceC.text) ?? 0,
-                    'barcode': barcodeC.text.isNotEmpty
-                        ? barcodeC.text
-                        : DateTime.now().millisecondsSinceEpoch
-                              .toString()
-                              .substring(0, 10),
-                    'category': categoryC.text.isNotEmpty
-                        ? categoryC.text
-                        : 'General',
-                  });
-                  if (mounted) {
-                    Navigator.pop(ctx);
-                    _load();
+              const SizedBox(height: 12),
+              TextField(
+                controller: priceC,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Price (INR)'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: barcodeC,
+                      decoration: const InputDecoration(labelText: 'Barcode'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.qr_code_scanner,
+                      color: AppColors.accent,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _openScanner();
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: categoryC,
+                decoration: const InputDecoration(
+                  labelText: 'Category (optional)',
+                ),
+              ),
+              const SizedBox(height: 20),
+              KkButton(
+                label: 'Add Product',
+                onTap: () async {
+                  if (nameC.text.isEmpty) return;
+                  try {
+                    await _api.createProduct({
+                      'name': nameC.text,
+                      'priceInr': double.tryParse(priceC.text) ?? 0,
+                      'barcode': barcodeC.text.isNotEmpty
+                          ? barcodeC.text
+                          : DateTime.now().millisecondsSinceEpoch
+                                .toString()
+                                .substring(0, 10),
+                      'category': categoryC.text.isNotEmpty
+                          ? categoryC.text
+                          : 'General',
+                    });
+                    if (mounted) {
+                      Navigator.pop(ctx);
+                      _load();
+                    }
+                  } catch (e) {
+                    if (mounted)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $e'),
+                          backgroundColor: AppColors.red,
+                        ),
+                      );
                   }
-                } catch (e) {
-                  if (mounted)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: AppColors.red,
-                      ),
-                    );
-                }
-              },
-              height: 48,
-            ),
+                },
+                height: 48,
+              ),
             ],
           ),
         ),
