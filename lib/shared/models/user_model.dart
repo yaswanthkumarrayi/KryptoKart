@@ -3,6 +3,7 @@ class UserModel {
   final String name;
   final String phone;
   final String upiId;
+  final String dob;
   final String walletAddress;
   final String kycStatus;
   final double portfolioValue;
@@ -15,6 +16,7 @@ class UserModel {
     required this.name,
     required this.phone,
     this.upiId = '',
+    this.dob = '',
     this.walletAddress = '',
     this.kycStatus = 'pending',
     this.portfolioValue = 0,
@@ -38,6 +40,7 @@ class UserModel {
       name: json['name'] ?? '',
       phone: json['phone'] ?? '',
       upiId: json['upiId'] ?? '',
+      dob: json['dob'] ?? '',
       walletAddress: json['walletAddress'] ?? '',
       kycStatus: json['kycStatus'] ?? 'pending',
       portfolioValue: (json['portfolioValue'] ?? 0).toDouble(),
@@ -51,6 +54,7 @@ class UserModel {
     'name': name,
     'phone': phone,
     'upiId': upiId,
+    'dob': dob,
     'walletAddress': walletAddress,
     'kycStatus': kycStatus,
     'portfolioValue': portfolioValue,
@@ -63,6 +67,7 @@ class UserModel {
     String? name,
     String? phone,
     String? upiId,
+    String? dob,
     String? walletAddress,
     String? kycStatus,
     double? portfolioValue,
@@ -75,6 +80,7 @@ class UserModel {
       name: name ?? this.name,
       phone: phone ?? this.phone,
       upiId: upiId ?? this.upiId,
+      dob: dob ?? this.dob,
       walletAddress: walletAddress ?? this.walletAddress,
       kycStatus: kycStatus ?? this.kycStatus,
       portfolioValue: portfolioValue ?? this.portfolioValue,

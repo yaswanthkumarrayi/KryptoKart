@@ -22,12 +22,18 @@ class CoinListTile extends StatelessWidget {
     final p = context.palette;
     final t = context.txt;
     final isPositive = coin.priceChange24h >= 0;
+    final showWatchlist = onWatchlistTap != null;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: EdgeInsets.only(
+          left: 14,
+          top: 12,
+          bottom: 12,
+          right: showWatchlist ? 8 : 8,
+        ),
         decoration: BoxDecoration(
           color: p.surface.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(16),
@@ -85,7 +91,10 @@ class CoinListTile extends StatelessWidget {
                 ],
               ),
             ),
-            Flexible(
+            // Price and change
+            Container(
+              constraints: const BoxConstraints(minWidth: 90),
+              alignment: Alignment.centerRight,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
@@ -106,19 +115,23 @@ class CoinListTile extends StatelessWidget {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: onWatchlistTap,
-              child: Icon(
-                isWatchlisted ? Icons.star_rounded : Icons.star_border_rounded,
-                color: isWatchlisted ? p.yellow : p.textSecondary,
-                size: 22,
+            // Watchlist star - only show if callback provided
+            if (showWatchlist) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onWatchlistTap,
+                child: Icon(
+                  isWatchlisted ? Icons.star_rounded : Icons.star_border_rounded,
+                  color: isWatchlisted ? p.yellow : p.textSecondary,
+                  size: 22,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

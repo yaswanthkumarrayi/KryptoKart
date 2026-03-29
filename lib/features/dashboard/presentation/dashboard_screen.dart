@@ -62,7 +62,7 @@ class DashboardScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            ShimmerLoader.card(height: 160),
+            ShimmerLoader.card(height: 200), // Height for the new banner
             const SizedBox(height: 16),
             ShimmerLoader.card(height: 80),
             const SizedBox(height: 16),
@@ -82,7 +82,7 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _portfolio(context, state)
+            _promoBanner(context)
                 .animate()
                 .fadeIn(duration: 500.ms)
                 .slideY(begin: 0.05),
@@ -101,77 +101,131 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _portfolio(BuildContext context, DashboardLoaded s) {
+  Widget _promoBanner(BuildContext context) {
     final p = context.palette;
     final t = context.txt;
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -20,
-            right: -20,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    p.accent.withValues(alpha: 0.15),
-                    Colors.transparent,
-                  ],
+
+    return Container(
+      height: 220,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            p.purple.withValues(alpha: 0.8),
+            p.purple.withValues(alpha: 0.4),
+            p.surface,
+          ],
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Background glow effects/rays
+            Positioned(
+              top: -50,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      p.accent.withValues(alpha: 0.15),
+                      Colors.transparent,
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('TOTAL PORTFOLIO VALUE', style: t.label),
-              const SizedBox(height: 4),
-              Text(
-                CurrencyFormatter.formatInr(s.user.portfolioValue),
-                style: t.number,
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+
+            // Card Image
+            Positioned(
+              top: 20,
+              child: Hero(
+                tag: 'promo_card',
+                child: Image.asset(
+                  'assets/card.png',
+                  height: 140,
+                  fit: BoxFit.contain,
                 ),
-                decoration: BoxDecoration(
-                  color: p.green.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.arrow_upward,
-                      color: p.green,
-                      size: 14,
+              ).animate().shimmer(duration: 2.seconds, color: p.accent.withValues(alpha: 0.1)),
+            ),
+
+            // Tap to Reveal Spheres
+            Positioned(
+              left: 20,
+              top: 60,
+              child: _sphere(context, 'TAP TO\nREVEAL'),
+            ),
+            Positioned(
+              right: 20,
+              top: 60,
+              child: _sphere(context, 'TAP TO\nREVEAL'),
+            ),
+
+            // Bottom Text
+            Positioned(
+              bottom: 20,
+              child: Column(
+                children: [
+                  Text(
+                    'Unlock the best rewards',
+                    style: t.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: p.accent,
                     ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '+12.4%',
-                      style: t.captionMedium.copyWith(
-                        color: p.green,
-                      ),
+                  ),
+                  Text(
+                    'with KryptoKart Platinum Card',
+                    style: t.caption.copyWith(
+                      color: p.accent.withValues(alpha: 0.7),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                '🛡 Assets secured in cold storage',
-                style: t.caption,
-              ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sphere(BuildContext context, String text) {
+    final p = context.palette;
+    final t = context.txt;
+    return Container(
+      width: 70,
+      height: 70,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: p.accent.withValues(alpha: 0.1),
+        border: Border.all(color: p.accent.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: p.purple.withValues(alpha: 0.3),
+            blurRadius: 15,
+            spreadRadius: 2,
           ),
         ],
       ),
-    );
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: t.caption.copyWith(
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
+            color: p.accent,
+          ),
+        ),
+      ),
+    ).animate(onPlay: (controller) => controller.repeat(reverse: true))
+     .scale(begin: const Offset(1, 1), end: const Offset(1.05, 1.05), duration: 1.seconds);
   }
 
   Widget _quickActions(BuildContext context) {
@@ -340,7 +394,7 @@ class DashboardScreen extends StatelessWidget {
       onTap: () => context.push('/coin/$coinId'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.only(left: 14, top: 14, bottom: 14, right: 8),
         decoration: BoxDecoration(
           color: p.surface.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(16),
@@ -385,7 +439,9 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
             ),
-            Flexible(
+            Container(
+              constraints: const BoxConstraints(minWidth: 80),
+              alignment: Alignment.centerRight,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
